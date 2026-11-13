@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trashed Trivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Yellowtail&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fce68c; --panel:#fdf0b4; --field:#fffae3;
+    --red:#ed254e; --ink:#9e1233; --muted:#c22a4c; --line:#ed254e;
+    --green:#2f7d3a; --orange:#d9701f;
+    --card:#fffaf0; --cardRed:#ed254e; --cardBlack:#2a1a14;
+    --pink:#ed254e; --title:#ed254e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;min-height:100%}
+  body{min-height:100vh}
+  .wrap{max-width:720px;margin:0 auto;padding:28px 18px 60px;position:relative;z-index:1}
+  h1,h2,.display{font-family:"Archivo Black",sans-serif;font-weight:400;margin:0}
+
+  /* doodles */
+  .doodles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .doodles svg{position:absolute;opacity:.42;fill:none;stroke:var(--red);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* title */
+  .hero{padding-top:14px;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .kicker{font-family:"Archivo Black",sans-serif;color:var(--red);font-size:clamp(13px,2.8vw,16px);letter-spacing:.14em;text-transform:uppercase;margin:0 0 4px}
+  .title{width:100%;margin:28px 0 0;display:flex;flex-direction:column;align-items:center;gap:clamp(10px,2.4vw,18px);color:var(--title);fill:currentColor}
+  .title svg{display:block;height:auto;fill:currentColor}
+  .title .wm-a{width:min(100%,640px)}
+  .hero + .tag{text-align:center;margin:40px auto 30px}
+  .title .wm-b{width:min(80%,512px)}
+  .rule{height:4px;background:var(--red);border-radius:2px;margin:18px 0}
+  .tag{color:var(--ink);margin:0 0 22px;font-size:16px;max-width:520px;font-weight:500}
+
+  /* panels + controls */
+  .panel{background:var(--panel);border:3px solid var(--red);border-radius:18px;padding:20px}
+  .row{display:flex;gap:10px;align-items:center}
+  input[type=text]{flex:1;background:var(--field);color:var(--ink);border:2px solid var(--red);border-radius:12px;padding:13px 14px;font:inherit;font-size:16px;outline:none}
+  input[type=text]::placeholder{color:var(--muted);opacity:.8}
+  input[type=text]:focus{box-shadow:0 0 0 3px rgba(237,37,78,.25)}
+  button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px 18px;font-weight:700;font-size:15px;color:var(--bg);background:var(--red);transition:transform .08s ease, filter .15s}
+  button:hover:not(:disabled){filter:brightness(1.05)}
+  button:active{transform:scale(.97)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .btn-pink,.btn-lime{background:var(--red);color:var(--bg)}
+  .btn-ghost{background:transparent;color:var(--red);border:2px solid var(--red)}
+  .btn-big{font-family:"Archivo Black",sans-serif;font-weight:400;font-size:22px;padding:17px 26px;border-radius:16px;width:100%;letter-spacing:.03em;text-transform:uppercase}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;min-height:10px}
+  .chip{display:flex;align-items:center;gap:8px;background:var(--field);border:2px solid var(--red);border-radius:999px;padding:6px 8px 6px 12px;font-weight:700;color:var(--ink)}
+  .chip .suit{font-size:16px}
+  .chip button{background:transparent;color:var(--red);padding:2px 6px;font-size:17px;line-height:1}
+  .label{font-family:"Archivo Black",sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--red);margin:22px 0 10px}
+  .seg{display:flex;background:var(--field);border:2px solid var(--red);border-radius:12px;padding:4px;gap:4px}
+  .seg button{flex:1;background:transparent;color:var(--red);padding:10px;font-size:14px}
+  .seg button.on{background:var(--red);color:var(--bg)}
+  .seg-stack button{display:flex;flex-direction:column;gap:2px;align-items:center;padding:10px 6px}
+  .seg-stack button b{font-size:14px}
+  .seg-stack button span{font-size:11px;font-weight:500;opacity:.85}
+  .hint{font-size:13px;color:var(--muted);margin-top:8px;font-weight:500}
+  .rules{margin-top:22px;font-size:14px;color:var(--ink);line-height:1.55}
+  .rules b{color:var(--red)}
+  .hidden{display:none !important}
+  textarea{width:100%;background:var(--field);color:var(--ink);border:2px solid var(--red);border-radius:12px;padding:12px 14px;font:inherit;font-size:16px;outline:none;resize:vertical}
+  textarea:focus{box-shadow:0 0 0 3px rgba(237,37,78,.25)}
+  textarea::placeholder{color:var(--muted);opacity:.8}
+  .addq{margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .addq button{width:100%}
+  .linkbtn{background:none;border:0;padding:0;color:var(--red);text-decoration:underline;font-weight:700;font-size:13px}
+  .modal{position:fixed;inset:0;background:rgba(158,18,51,.35);display:grid;place-items:center;z-index:20;padding:16px}
+  .sheet{width:min(560px,100%);max-height:92vh;overflow:auto}
+  .sheet-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+  .sheet-head h2{font-family:"Archivo Black",sans-serif;font-size:20px;color:var(--red);text-transform:uppercase;letter-spacing:.04em}
+  .sheet .btn-ghost{padding:9px 14px}
+  .flabel{display:block;font-family:"Archivo Black",sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--red);margin:16px 0 8px}
+  .flabel span{font-family:"DM Sans";text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted)}
+  .wrongs{display:grid;gap:8px}
+  .wrongs input,#fA{width:100%}
+  .myq{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:2px solid rgba(237,37,78,.25)}
+  .myq .t{font-weight:700;color:var(--ink)}
+  .myq .a{font-size:13px;color:var(--muted);margin-top:2px}
+  .myq button{background:transparent;color:var(--red);padding:2px 8px;font-size:18px}
+  .reveal{border:2px dashed var(--red);border-radius:12px;padding:18px;text-align:center;background:var(--field)}
+  .reveal .ans{font-family:"Archivo Black",sans-serif;font-size:clamp(20px,5vw,26px);color:var(--red);margin:6px 0 14px}
+  .judge{display:flex;gap:10px}
+  .judge button{flex:1}
+  .topbar .btn-ghost{white-space:nowrap}
+  html,body{overflow-x:hidden}
+  @media (max-width:560px){
+    #deckLeft{display:none}
+    .topbar{flex-direction:column;gap:12px}
+    .topbar .mini-title{justify-content:center}
+    .topbar .mini-title svg{height:17px}
+    .topbar .btn-ghost{padding:8px 14px;font-size:13px}
+    .seg-stack{flex-direction:column}
+    .seg-stack button{flex-direction:row;justify-content:space-between;padding:11px 14px;text-align:left}
+    .seg-stack button b{white-space:nowrap}
+    .seg-stack button span{font-size:12px;text-align:right}
+    .sheet-head h2{font-size:17px}
+    .panel{padding:18px 16px}
+  }
+  .btn-green{background:var(--green);color:var(--card)}
+
+  /* game */
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px}
+  .mini-title{display:flex;align-items:center;gap:10px;color:var(--title);fill:currentColor}
+  .mini-title svg{height:18px;width:auto;fill:currentColor}
+  .stage{display:grid;place-items:center;min-height:300px;perspective:1000px;margin:6px 0 18px}
+  .playing-card{width:190px;height:268px;position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+  .playing-card.flipped{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;border:3px solid var(--red);box-shadow:6px 8px 0 rgba(158,18,51,.25)}
+  .back{background:var(--red);display:grid;place-items:center;
+    background-image:repeating-linear-gradient(45deg, rgba(249,220,92,.18) 0 10px, transparent 10px 20px)}
+  .back .cb{background:var(--bg);border-radius:10px;padding:12px 12px 10px;transform:rotate(-6deg)}
+  .back .card-wm{margin:0;gap:7px;color:var(--red);width:130px}
+  .back .card-wm .wm-a{width:100%}
+  .back .card-wm .wm-b{width:80%}
+  .front{background:var(--card);transform:rotateY(180deg);color:var(--cardBlack);padding:12px 14px;display:flex;flex-direction:column}
+  .front.red{color:var(--cardRed)}
+  .corner{font-family:"Archivo Black",sans-serif;font-size:24px;line-height:.95;text-align:center;width:34px}
+  .corner small{display:block;font-size:22px;font-family:system-ui}
+  .corner.br{align-self:flex-end;transform:rotate(180deg)}
+  .pip{flex:1;display:grid;place-items:center;font-size:84px;line-height:1}
+  .who{text-align:center;margin-bottom:8px}
+  .who .name{font-family:"Archivo Black",sans-serif;text-transform:uppercase;font-size:clamp(28px,7vw,40px);line-height:1;color:var(--red)}
+  .who .stakes{margin-top:10px;display:inline-block;background:var(--red);color:var(--bg);font-weight:700;padding:6px 14px;border-radius:999px;font-size:15px}
+  .qbox{margin-top:16px}
+  .qmeta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+  .diff{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;letter-spacing:.1em;color:var(--card)}
+  .diff.easy{background:var(--green)}
+  .diff.medium{background:var(--orange)}
+  .diff.hard{background:var(--red)}
+  .timer{font-variant-numeric:tabular-nums;color:var(--ink);font-family:"Archivo Black",sans-serif;font-size:16px}
+  .timer.low{color:var(--red)}
+  .question{font-size:clamp(20px,4.6vw,26px);font-weight:700;line-height:1.25;margin-bottom:16px;color:var(--ink)}
+  .opts{display:grid;gap:10px}
+  .opt{text-align:left;background:var(--field);color:var(--ink);border:2px solid var(--red);padding:15px 16px;font-size:17px;font-weight:500;display:flex;gap:12px;align-items:center}
+  .opt .k{font-family:"Archivo Black",sans-serif;font-weight:400;color:var(--red);width:20px}
+  .opt:hover:not(:disabled){background:#fff}
+  .opt.right{background:var(--green);color:var(--card);border-color:var(--green)}
+  .opt.right .k{color:var(--card)}
+  .opt.wrong{background:var(--red);color:var(--card);border-color:var(--red)}
+  .opt.wrong .k{color:var(--card)}
+  .opt:disabled{opacity:1;cursor:default}
+  .verdict{margin-top:16px;border-radius:16px;padding:18px;text-align:center;border:3px solid}
+  .verdict.good{background:rgba(47,125,58,.1);border-color:var(--green)}
+  .verdict.bad{background:rgba(237,37,78,.1);border-color:var(--red)}
+  .verdict .display{text-transform:uppercase;font-size:clamp(26px,6vw,36px);line-height:1}
+  .verdict.good .display{color:var(--green)}
+  .verdict.bad .display{color:var(--red)}
+  .verdict p{margin:8px 0 0;color:var(--ink)}
+  .actions{display:flex;gap:10px;margin-top:14px}
+  .actions button{flex:1}
+  .board{margin-top:26px}
+  table{width:100%;border-collapse:collapse;font-size:15px;color:var(--ink)}
+  th{font-family:"Archivo Black",sans-serif;font-weight:400;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--red);text-align:right;padding:8px 6px}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:10px 6px;border-top:2px solid rgba(237,37,78,.35);text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  td.give{color:var(--green);font-weight:700}
+  td.take{color:var(--red);font-weight:700}
+  .foot{margin-top:30px;text-align:center;font-size:12px;color:var(--muted)}
+  @keyframes pop{0%{transform:scale(.9);opacity:0}100%{transform:scale(1);opacity:1}}
+  .pop{animation:pop .25s ease-out}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<filter id="pA" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="w"/><feDisplacementMap in="SourceGraphic" in2="w" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"/><feTurbulence type="fractalNoise" baseFrequency="1.1" seed="7" result="g"/><feColorMatrix in="g" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2 1.55" result="ga"/><feComposite in="d" in2="ga" operator="in"/></filter>
+<filter id="pB" x="-20%" y="-20%" width="140%" height="140%"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="11" result="w"/><feDisplacementMap in="SourceGraphic" in2="w" scale="6" xChannelSelector="G" yChannelSelector="R" result="d"/><feTurbulence type="fractalNoise" baseFrequency="1.3" seed="2" result="g"/><feColorMatrix in="g" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.4 1.5" result="ga"/><feComposite in="d" in2="ga" operator="in"/></filter>
+<symbol id="wm-trashed" viewBox="0 0 1416 224"><path fill-rule="evenodd" d="M80.4 223.3C68.6 223.0 67.1 222.7 65.4 220.9C63.7 219.0 63.5 216.6 63.2 192.6C63.0 178.3 62.7 150.8 62.4 131.5C62.2 112.2 61.9 86.3 61.7 73.8C61.6 61.4 61.1 50.8 60.7 50.3C60.2 49.9 47.1 49.4 31.6 49.2L3.3 48.9L2.6 40.7C0.6 17.2 0.2 7.4 1.1 6.5C2.3 5.2 50.2 4.2 112.6 4.1L161.7 4.0L162.9 24.2C163.6 35.3 164.4 44.8 164.6 45.2C165.5 46.6 157.6 47.3 145.1 46.8C130.6 46.2 113.1 47.3 109.9 49.1L107.7 50.2L108.6 86.9C109.1 107.0 109.5 145.2 109.5 171.7C109.5 213.2 109.3 220.1 108.0 221.4C106.2 223.2 98.1 223.8 80.4 223.3ZM221.1 222.1C219.4 221.7 218.4 220.4 217.9 218.5C216.9 214.0 216.0 34.4 217.0 20.6C217.6 12.3 218.3 8.3 219.3 7.2C221.1 5.5 223.8 5.4 287.8 4.0C324.4 3.2 335.0 3.3 348.3 4.5C368.8 6.4 373.7 7.4 379.2 10.9C388.2 16.6 390.4 23.7 392.1 53.3C393.6 80.3 392.9 100.2 390.1 109.1C387.6 117.1 381.4 126.7 376.4 130.5C374.4 132.1 369.5 134.5 365.6 136.0C355.2 140.0 353.0 141.3 353.0 143.3C353.0 145.5 362.3 163.3 368.3 172.7C373.3 180.5 377.3 188.1 378.5 192.0C378.9 193.4 381.0 198.4 383.3 203.2L387.3 212.0L383.7 216.3C380.8 219.9 379.6 220.6 377.6 220.3C376.2 220.0 372.1 220.3 368.5 220.9L361.9 222.1L353.7 216.1C340.1 206.3 337.8 203.7 330.0 189.1C318.8 168.0 301.3 144.2 295.4 141.9C292.5 140.9 281.6 140.7 270.7 141.6L263.1 142.3L262.6 147.4C262.3 150.2 261.9 166.3 261.7 183.3C261.3 217.8 261.5 216.6 253.6 219.4C251.4 220.3 244.6 221.4 238.6 222.0C226.5 223.1 224.6 223.1 221.1 222.1ZM1113.0 222.0L1109.5 221.5L1109.8 129.5C1110.0 78.9 1110.4 29.4 1110.8 19.5L1111.5 1.5L1166.8 1.4C1208.9 1.4 1222.5 1.7 1223.8 2.6C1226.1 4.2 1226.7 24.1 1224.9 35.8C1223.4 45.9 1222.5 46.7 1214.3 45.0C1210.8 44.2 1206.6 44.1 1203.1 44.6C1200.0 45.0 1188.3 45.2 1177.0 45.1L1156.5 44.8L1156.1 66.4C1155.7 91.1 1156.1 92.3 1162.7 93.4C1164.8 93.8 1175.4 94.5 1186.3 95.0C1200.1 95.6 1206.6 96.2 1207.7 97.2C1209.1 98.3 1209.2 100.4 1208.6 113.5C1208.2 124.4 1207.6 128.8 1206.6 129.9C1205.4 131.0 1201.5 131.1 1181.7 130.4C1168.8 129.9 1157.5 129.6 1156.7 129.8C1154.4 130.3 1153.9 135.9 1154.2 158.0L1154.5 177.5L1190.2 177.5C1209.9 177.6 1226.3 177.9 1226.7 178.4C1227.9 179.6 1228.3 217.2 1227.1 218.9C1226.4 220.0 1222.5 220.6 1211.3 221.1C1193.1 222.0 1117.8 222.7 1113.0 222.0ZM573.7 221.0C571.7 220.6 569.8 220.1 569.6 219.9C567.7 218.0 560.8 203.0 559.5 197.9C558.6 194.4 556.7 188.8 555.2 185.6L552.6 179.7L539.1 180.4C531.7 180.7 519.1 181.0 511.1 181.0L496.5 181.1L491.5 196.2C483.8 219.6 483.6 219.9 479.2 219.9C477.7 219.9 468.2 219.9 458.1 220.0C445.5 220.1 439.4 219.8 438.6 219.0C437.8 218.2 440.4 209.2 449.1 183.2C455.5 164.1 463.7 139.1 467.3 127.5C473.7 107.2 476.8 96.8 493.9 38.5C504.7 2.0 504.0 3.7 508.1 2.3C512.4 0.8 528.0 0.7 535.2 2.1C540.0 3.1 541.0 3.7 543.3 7.2C544.7 9.3 547.5 16.4 549.5 22.8C551.5 29.2 555.1 40.6 557.5 48.0C559.9 55.4 562.4 64.0 563.0 67.0C564.1 72.8 580.3 121.8 582.5 126.0C585.1 131.0 594.3 159.5 597.0 171.0C598.0 175.1 599.8 180.8 601.0 183.5C607.9 199.3 612.2 211.1 612.7 215.6L613.2 220.7L604.9 221.3C594.4 222.2 578.7 222.0 573.7 221.0ZM672.5 221.0C657.3 219.9 657.3 219.9 656.5 213.6C656.1 210.8 656.0 202.7 656.2 195.6C656.5 183.6 656.6 182.7 658.9 180.9C661.8 178.5 668.1 178.4 687.5 180.5C709.9 182.9 745.8 182.1 749.4 179.1C751.7 177.1 753.0 167.6 753.2 150.0C753.5 130.4 752.4 123.7 748.4 119.9C746.1 117.7 744.7 117.5 730.7 116.9C707.8 115.8 699.0 114.3 684.8 108.9C679.6 106.8 676.2 104.8 674.1 102.5C666.5 93.9 663.8 70.0 666.4 36.5C668.3 12.7 669.1 8.9 672.5 6.2C675.6 3.7 686.0 1.3 696.5 0.5C722.2 -1.3 782.8 5.2 786.2 10.2C786.7 10.9 786.9 17.6 786.8 25.1C786.4 44.9 790.2 43.2 748.5 42.9C724.9 42.7 713.8 43.0 712.4 43.8C710.0 45.1 709.0 50.1 709.0 60.6C709.0 68.4 710.2 71.8 713.6 73.0C715.0 73.6 726.1 74.7 738.3 75.5C763.1 77.3 771.6 78.4 776.9 80.6C781.2 82.4 784.9 85.7 786.1 88.9C787.9 93.5 789.9 110.8 791.1 131.8C793.1 165.8 790.4 189.7 782.6 206.4C776.4 219.8 771.2 221.1 719.0 221.5C699.5 221.6 678.5 221.4 672.5 221.0ZM866.8 220.8C859.8 218.9 860.1 221.3 859.5 171.0C859.2 146.0 858.5 107.7 857.9 86.0C856.8 46.1 857.3 13.7 859.1 6.6L860.1 2.8L880.3 3.5C891.4 3.9 901.0 4.6 901.5 5.1C902.1 5.7 902.6 15.2 902.7 28.6C902.9 48.5 903.1 51.5 904.8 54.3L906.6 57.5L915.1 57.4C962.8 56.9 979.7 55.6 989.1 51.7L992.7 50.2L992.5 26.1L992.3 2.0L1013.6 2.0L1034.8 2.0L1035.9 9.7C1036.5 14.3 1037.5 52.1 1038.2 101.0C1039.4 187.1 1038.9 210.4 1035.9 216.5L1034.5 219.5L1014.9 219.8C999.3 220.0 995.0 219.8 994.1 218.7C993.3 217.7 992.9 201.4 992.5 163.2C992.3 133.4 991.8 108.0 991.4 106.6C991.1 105.3 990.3 103.9 989.6 103.7C988.3 103.2 952.2 104.6 942.5 105.5C925.8 107.1 908.3 109.3 906.2 110.1C904.1 110.9 904.0 111.5 904.0 122.2C904.0 128.4 904.5 143.4 905.1 155.5C905.8 169.5 905.9 184.4 905.3 196.5L904.5 215.5L899.9 216.6C897.3 217.3 893.3 218.1 890.9 218.4C888.5 218.7 885.1 219.4 883.5 219.9C878.5 221.4 870.7 221.9 866.8 220.8ZM1297.0 220.3C1294.0 220.1 1291.3 219.4 1290.9 218.9C1290.2 217.7 1290.7 17.4 1291.5 9.3C1292.0 4.2 1292.5 3.1 1294.3 2.6C1295.5 2.2 1313.2 1.7 1333.5 1.3C1383.0 0.5 1389.4 1.4 1398.1 10.7C1403.1 16.0 1405.6 19.8 1408.0 26.0C1414.6 42.7 1416.0 57.3 1416.0 109.0C1416.0 151.3 1415.7 156.5 1411.4 181.7C1407.7 203.3 1396.7 214.9 1376.4 218.5C1368.4 219.9 1308.6 221.3 1297.0 220.3ZM1357.6 179.5C1367.3 176.6 1369.7 170.4 1371.3 144.5C1372.6 121.6 1372.6 120.3 1371.6 83.0C1370.9 57.0 1370.5 52.9 1368.8 48.8C1367.7 46.2 1366.0 43.4 1365.0 42.5C1362.7 40.4 1347.3 37.9 1344.0 39.2C1336.9 41.9 1335.5 45.5 1333.4 66.1C1332.0 80.1 1331.6 91.7 1331.8 126.3C1331.9 166.6 1332.1 169.4 1333.9 173.6C1335.3 176.8 1336.9 178.5 1339.2 179.5C1343.5 181.4 1351.4 181.4 1357.6 179.5ZM540.3 138.0C540.1 131.5 525.6 80.0 524.0 80.0C522.5 80.0 508.0 133.2 508.0 138.6C508.0 141.3 508.5 142.1 510.2 142.5C512.5 143.0 529.0 143.7 536.5 143.6L540.5 143.5L540.3 138.0ZM337.5 97.5C344.3 94.1 345.5 90.7 345.4 75.0C345.3 58.7 343.9 51.1 340.3 47.6L337.7 45.0L302.1 45.0C275.0 45.0 266.0 45.3 264.8 46.2C263.5 47.3 263.1 51.0 262.4 65.0C262.0 74.6 261.6 86.1 261.6 90.5L261.5 98.5L266.0 99.1C268.5 99.5 284.7 99.7 302.0 99.6C331.4 99.5 333.8 99.4 337.5 97.5Z"/></symbol>
+<symbol id="wm-trivia" viewBox="0 0 1133 224"><path fill-rule="evenodd" d="M92.8 223.1C85.4 222.7 82.6 222.1 81.3 220.7C79.7 219.1 79.5 216.3 79.3 191.2C79.2 176.0 78.7 137.1 78.3 104.8C77.6 54.6 77.3 45.9 76.0 44.7C74.7 43.5 69.0 43.3 39.0 44.0C19.5 44.3 2.7 44.5 1.7 44.2C0.2 43.8 0.0 42.4 0.1 31.1C0.2 17.8 1.1 7.6 2.3 6.3C5.1 3.6 150.7 1.5 177.5 3.8L191.5 5.0L195.2 8.9C199.8 13.7 200.1 17.9 196.9 26.6C193.1 36.7 192.5 37.0 175.4 37.0C160.8 37.0 131.5 39.5 127.3 41.1C125.7 41.7 125.0 43.0 124.4 46.5C124.1 49.0 124.3 70.1 124.9 93.3C126.5 153.3 126.4 219.1 124.7 221.4C123.6 222.9 121.6 223.2 112.9 223.5C107.2 223.6 98.1 223.5 92.8 223.1ZM352.5 222.0C350.3 221.5 347.3 221.3 345.8 221.6C342.4 222.3 340.0 219.7 337.5 212.8C336.5 209.9 333.7 203.4 331.4 198.5C329.1 193.5 324.7 183.3 321.6 175.7C314.1 157.2 309.5 148.4 306.4 146.4C303.6 144.5 295.5 144.1 293.9 145.7C292.6 147.0 292.3 174.3 293.4 194.6C293.9 203.5 294.0 212.3 293.6 214.3C292.6 219.7 288.3 221.0 270.7 221.0C252.6 221.0 252.2 220.9 251.5 215.6C251.2 213.4 250.5 171.7 250.0 123.0C249.4 74.3 248.7 28.1 248.3 20.4L247.7 6.2L250.6 4.4C253.2 2.6 256.5 2.5 298.5 2.1C329.7 1.9 345.4 2.1 349.1 2.9C356.4 4.4 366.7 9.4 370.8 13.3C379.3 21.4 380.6 28.4 380.3 68.0C380.1 103.9 379.3 108.7 372.0 123.7C367.7 132.4 366.6 133.5 357.1 138.9C353.7 140.8 351.0 142.6 351.0 143.0C351.0 143.4 356.3 154.5 362.8 167.6C369.4 180.7 375.0 193.1 375.4 195.0C375.8 196.9 377.2 200.8 378.6 203.5C379.9 206.2 381.3 210.6 381.7 213.2C382.2 217.8 382.2 217.9 379.4 218.5C377.8 218.8 374.0 219.7 371.0 220.5C363.1 222.5 357.1 223.0 352.5 222.0ZM466.5 221.5C463.8 220.8 459.5 220.1 457.0 220.1C454.5 220.0 452.0 219.6 451.3 219.2C450.5 218.7 449.9 199.3 449.1 149.0C448.5 110.8 447.5 64.4 446.9 46.0C446.3 27.6 445.9 10.5 446.1 8.1C446.6 2.5 446.7 2.4 469.1 1.1C488.4 -0.2 490.6 0.3 491.4 5.2C492.4 11.0 494.0 63.9 495.0 123.0C495.5 154.6 496.3 187.7 496.6 196.5L497.3 212.5L494.6 215.7C489.3 222.0 477.7 224.4 466.5 221.5ZM834.5 221.5C831.8 220.8 827.5 220.1 825.0 220.1C822.5 220.0 820.0 219.6 819.3 219.2C818.5 218.7 817.9 199.7 817.1 150.0C816.5 112.3 815.5 65.8 814.9 46.5C814.3 27.2 813.9 9.7 814.1 7.6C814.6 2.6 815.1 2.4 837.1 1.1C856.4 -0.2 858.6 0.3 859.4 5.2C860.4 11.1 862.0 65.2 863.0 124.0C863.6 155.6 864.3 188.5 864.6 197.0L865.3 212.5L862.6 215.7C857.3 222.0 845.7 224.4 834.5 221.5ZM1097.5 222.1C1090.9 221.8 1085.0 221.2 1084.4 220.8C1083.8 220.4 1083.0 218.6 1082.6 216.8C1082.3 215.0 1081.1 212.7 1080.1 211.5C1079.0 210.4 1076.5 205.7 1074.4 201.0C1072.4 196.3 1069.7 190.9 1068.4 188.9L1066.2 185.3L1023.8 185.3L981.5 185.3L978.8 188.2C977.3 189.8 973.8 195.9 971.0 201.8C968.2 207.7 965.1 214.1 964.2 216.0C962.5 219.4 962.3 219.5 955.0 220.3C947.2 221.1 915.5 220.9 914.7 220.0C913.5 218.8 920.6 201.4 930.8 180.2C936.9 167.7 943.4 153.1 945.4 147.8C947.4 142.5 950.4 135.7 952.1 132.8C953.9 129.9 957.6 122.1 960.5 115.5C963.4 108.9 968.5 97.4 971.8 89.9C975.2 82.4 978.2 75.0 978.6 73.4C979.0 71.8 982.9 62.6 987.3 53.0C991.6 43.4 997.2 30.4 999.7 24.0C1002.1 17.7 1005.3 10.0 1006.7 6.9C1009.6 0.2 1010.2 -0.0 1025.2 -0.0C1034.4 -0.0 1035.3 0.2 1037.6 2.5C1040.2 5.2 1043.5 11.9 1050.7 29.5C1053.1 35.5 1058.3 47.0 1062.2 55.0C1071.2 73.5 1081.4 96.4 1105.5 152.0C1116.1 176.5 1126.4 200.0 1128.4 204.2C1132.5 213.0 1134.1 220.7 1131.9 221.4C1129.2 222.2 1109.4 222.6 1097.5 222.1ZM638.0 221.0C633.9 219.8 629.6 217.3 627.4 214.8C624.1 211.3 616.6 193.0 612.5 178.9C610.5 171.9 606.1 158.9 602.6 149.9C599.1 140.9 594.0 127.0 591.2 119.0C588.4 111.0 583.3 98.7 580.0 91.5C571.0 72.6 562.9 53.4 557.1 37.5C554.2 29.8 550.8 20.7 549.3 17.3C546.6 10.6 546.7 6.5 549.8 5.6C550.7 5.4 560.6 5.0 571.7 4.8L591.9 4.5L594.9 7.4C598.7 11.0 605.1 24.2 613.5 45.5C617.0 54.3 622.2 67.1 625.0 74.0C627.8 80.9 632.7 94.1 636.0 103.5C641.5 119.7 648.9 139.3 650.8 142.7C651.3 143.5 652.0 143.8 652.3 143.3C654.1 140.4 680.3 81.9 686.0 68.0C689.7 58.9 694.6 47.2 696.8 42.0C699.0 36.8 703.3 26.4 706.4 19.0C709.6 11.6 712.5 5.1 712.9 4.7C713.3 4.3 723.5 3.7 735.6 3.5C756.2 3.1 757.6 3.2 760.7 5.1C765.1 7.8 764.9 9.7 759.4 21.6C756.9 27.1 752.8 36.9 750.4 43.5C740.6 69.8 736.2 80.1 720.8 111.9C712.2 129.6 704.5 146.9 703.0 151.4C702.3 153.6 698.9 161.5 695.4 169.1C688.9 183.4 676.0 215.1 676.0 216.7C676.0 217.3 675.1 218.5 673.9 219.6C672.0 221.3 670.0 221.5 656.1 221.6C647.5 221.7 639.4 221.5 638.0 221.0ZM1049.0 142.5C1050.3 141.0 1049.8 138.7 1047.0 132.5C1046.1 130.3 1043.3 124.0 1041.0 118.5C1033.1 99.8 1023.8 81.8 1022.6 83.1C1022.4 83.3 1019.8 88.5 1016.8 94.5C1007.9 112.3 997.0 138.3 997.0 141.6C997.0 142.7 1000.5 143.0 1014.2 143.3C1023.7 143.4 1035.2 143.7 1039.6 143.8C1045.7 143.9 1048.1 143.6 1049.0 142.5ZM330.5 98.0C335.2 96.2 336.4 91.4 336.4 74.0C336.5 56.6 334.9 46.8 331.5 43.4C329.5 41.4 328.7 41.3 311.9 41.7C302.3 42.0 293.9 42.3 293.2 42.6C292.1 42.9 292.0 47.9 292.3 68.2C292.6 83.2 293.2 94.6 293.8 96.2L295.0 99.0L311.4 99.0C320.5 99.0 329.0 98.6 330.5 98.0Z"/></symbol>
+</defs></svg>
+<div class="doodles" aria-hidden="true"><svg viewBox="0 0 100 100" style="top:44%;left:95%;width:96px;height:96px;transform:translate(-50%,-50%) rotate(-10deg)"><g filter="url(#pA)"><path d="M27 22 Q33 15 45 16 Q50 13 56 16 Q67 15 73 21 Q71 26 64 25 Q60 28 54 26 Q48 29 42 26 Q34 28 29 25Z"/><path d="M51 18 Q50 11 59 3"/><path d="M46 18 Q51 22 56 18"/><path d="M34 26 Q39 36 36 46 Q32 56 38 64 Q42 73 35 83"/><path d="M65 26 Q60 36 63 46 Q67 56 61 64 Q57 73 64 83"/><path d="M29 85 Q34 80 40 82 Q46 79 52 82 Q58 79 64 82 Q70 80 73 86 Q67 93 50 93 Q33 93 29 85Z"/><path d="M44 34 Q47 41 44 49 M55 48 Q57 55 53 62 M46 66 Q49 71 46 76"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M27 22 Q33 15 45 16 Q50 13 56 16 Q67 15 73 21 Q71 26 64 25 Q60 28 54 26 Q48 29 42 26 Q34 28 29 25Z"/><path d="M51 18 Q50 11 59 3"/><path d="M46 18 Q51 22 56 18"/><path d="M34 26 Q39 36 36 46 Q32 56 38 64 Q42 73 35 83"/><path d="M65 26 Q60 36 63 46 Q67 56 61 64 Q57 73 64 83"/><path d="M29 85 Q34 80 40 82 Q46 79 52 82 Q58 79 64 82 Q70 80 73 86 Q67 93 50 93 Q33 93 29 85Z"/><path d="M44 34 Q47 41 44 49 M55 48 Q57 55 53 62 M46 66 Q49 71 46 76"/></g></svg><svg viewBox="0 0 100 100" style="top:6%;left:4%;width:120px;height:120px;transform:translate(-50%,-50%) rotate(-8deg)"><g filter="url(#pA)"><path d="M20 26 H80 L76 32 H24Z"/><path d="M42 26 Q42 17 50 17 Q58 17 58 26"/><path d="M27 32 L33 88 H67 L73 32"/><path d="M40 40 L42 80 M50 40 V80 M60 40 L58 80"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M20 26 H80 L76 32 H24Z"/><path d="M42 26 Q42 17 50 17 Q58 17 58 26"/><path d="M27 32 L33 88 H67 L73 32"/><path d="M40 40 L42 80 M50 40 V80 M60 40 L58 80"/></g></svg><svg viewBox="0 0 100 100" style="top:4%;left:30%;width:90px;height:90px;transform:translate(-50%,-50%) rotate(12deg)"><g filter="url(#pA)"><path d="M12 50 Q22 35 36 44 V56 Q22 65 12 50Z"/><path d="M20 46 L25 51 M25 46 L20 51"/><path d="M36 50 H80"/><path d="M46 39 V61 M56 37 V63 M66 39 V61"/><path d="M80 50 L92 38 L89 50 L92 62Z"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M12 50 Q22 35 36 44 V56 Q22 65 12 50Z"/><path d="M20 46 L25 51 M25 46 L20 51"/><path d="M36 50 H80"/><path d="M46 39 V61 M56 37 V63 M66 39 V61"/><path d="M80 50 L92 38 L89 50 L92 62Z"/></g></svg><svg viewBox="0 0 100 100" style="top:8%;left:62%;width:70px;height:70px;transform:translate(-50%,-50%) rotate(-14deg)"><g filter="url(#pA)"><path d="M50 12 Q72 12 72 36 Q72 50 60 58 V70 H40 V58 Q28 50 28 36 Q28 12 50 12Z"/><path d="M40 77 H60 M43 84 H57"/><path d="M44 22 L50 31 L45 40"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M50 12 Q72 12 72 36 Q72 50 60 58 V70 H40 V58 Q28 50 28 36 Q28 12 50 12Z"/><path d="M40 77 H60 M43 84 H57"/><path d="M44 22 L50 31 L45 40"/></g></svg><svg viewBox="0 0 100 100" style="top:5%;left:86%;width:90px;height:90px;transform:translate(-50%,-50%) rotate(8deg)"><g filter="url(#pA)"><path d="M30 36 L44 20 H70 L70 88 H30Z"/><path d="M30 36 H56 L70 20 M56 36 V88"/><path d="M44 20 L46 12 H66 L70 20"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M30 36 L44 20 H70 L70 88 H30Z"/><path d="M30 36 H56 L70 20 M56 36 V88"/><path d="M44 20 L46 12 H66 L70 20"/></g></svg><svg viewBox="0 0 100 100" style="top:30%;left:90%;width:110px;height:110px;transform:translate(-50%,-50%) rotate(18deg)"><g filter="url(#pA)"><path d="M44 10 H56 V26 Q66 34 66 46 V90 H34 V46 Q34 34 44 26Z"/><path d="M42 16 H58"/><rect x="38" y="54" width="24" height="18" rx="2"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M44 10 H56 V26 Q66 34 66 46 V90 H34 V46 Q34 34 44 26Z"/><path d="M42 16 H58"/><rect x="38" y="54" width="24" height="18" rx="2"/></g></svg><svg viewBox="0 0 100 100" style="top:28%;left:8%;width:100px;height:100px;transform:translate(-50%,-50%) rotate(-6deg)"><g filter="url(#pA)"><path d="M18 52 H82 L74 84 H26Z"/><path d="M18 52 L30 24 H90 L82 52"/><path d="M30 24 L26 52"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M18 52 H82 L74 84 H26Z"/><path d="M18 52 L30 24 H90 L82 52"/><path d="M30 24 L26 52"/></g></svg><svg viewBox="0 0 100 100" style="top:46%;left:2%;width:96px;height:96px;transform:translate(-50%,-50%) rotate(10deg)"><g filter="url(#pA)"><path d="M47 34 Q40 58 26 80 Q18 86 21 74 Q34 52 42 32"/><path d="M53 34 Q62 58 78 79 Q85 85 84 73 Q67 52 58 32"/><path d="M45 34 Q51 60 53 87 Q46 92 44 85 Q44 60 47 34"/><path d="M42 33 Q50 20 58 33"/><path d="M48 23 L49 11 L54 12 L53 24"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M47 34 Q40 58 26 80 Q18 86 21 74 Q34 52 42 32"/><path d="M53 34 Q62 58 78 79 Q85 85 84 73 Q67 52 58 32"/><path d="M45 34 Q51 60 53 87 Q46 92 44 85 Q44 60 47 34"/><path d="M42 33 Q50 20 58 33"/><path d="M48 23 L49 11 L54 12 L53 24"/></g></svg><svg viewBox="0 0 100 100" style="top:66%;left:6%;width:100px;height:100px;transform:translate(-50%,-50%) rotate(-12deg)"><g filter="url(#pA)"><path d="M24 18 H76 L73 27 H27Z"/><path d="M29 27 L36 90 H64 L71 27"/><path d="M32 46 H68 M34 64 H66"/><circle cx="50" cy="55" r="5"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M24 18 H76 L73 27 H27Z"/><path d="M29 27 L36 90 H64 L71 27"/><path d="M32 46 H68 M34 64 H66"/><circle cx="50" cy="55" r="5"/></g></svg><svg viewBox="0 0 100 100" style="top:70%;left:90%;width:90px;height:90px;transform:translate(-50%,-50%) rotate(14deg)"><g filter="url(#pA)"><path d="M32 18 H68 L71 31 L60 46 L73 61 L68 84 H32 L27 62 L41 48 L29 32Z"/><path d="M32 18 Q50 11 68 18"/><path d="M41 48 H60"/><path d="M36 37 L64 36 M36 70 L64 70"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M32 18 H68 L71 31 L60 46 L73 61 L68 84 H32 L27 62 L41 48 L29 32Z"/><path d="M32 18 Q50 11 68 18"/><path d="M41 48 H60"/><path d="M36 37 L64 36 M36 70 L64 70"/></g></svg><svg viewBox="0 0 100 100" style="top:86%;left:80%;width:120px;height:120px;transform:translate(-50%,-50%) rotate(-6deg)"><g filter="url(#pA)"><path d="M20 36 L16 90 H84 L80 36"/><path d="M20 36 L28 12 H38 L42 36 M58 36 L62 12 H72 L80 36"/><path d="M42 36 H58"/><path d="M40 62 Q50 56 60 62"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M20 36 L16 90 H84 L80 36"/><path d="M20 36 L28 12 H38 L42 36 M58 36 L62 12 H72 L80 36"/><path d="M42 36 H58"/><path d="M40 62 Q50 56 60 62"/></g></svg><svg viewBox="0 0 100 100" style="top:88%;left:30%;width:80px;height:80px;transform:translate(-50%,-50%) rotate(8deg)"><g filter="url(#pA)"><path d="M27 22 Q33 15 45 16 Q50 13 56 16 Q67 15 73 21 Q71 26 64 25 Q60 28 54 26 Q48 29 42 26 Q34 28 29 25Z"/><path d="M51 18 Q50 11 59 3"/><path d="M46 18 Q51 22 56 18"/><path d="M34 26 Q39 36 36 46 Q32 56 38 64 Q42 73 35 83"/><path d="M65 26 Q60 36 63 46 Q67 56 61 64 Q57 73 64 83"/><path d="M29 85 Q34 80 40 82 Q46 79 52 82 Q58 79 64 82 Q70 80 73 86 Q67 93 50 93 Q33 93 29 85Z"/><path d="M44 34 Q47 41 44 49 M55 48 Q57 55 53 62 M46 66 Q49 71 46 76"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M27 22 Q33 15 45 16 Q50 13 56 16 Q67 15 73 21 Q71 26 64 25 Q60 28 54 26 Q48 29 42 26 Q34 28 29 25Z"/><path d="M51 18 Q50 11 59 3"/><path d="M46 18 Q51 22 56 18"/><path d="M34 26 Q39 36 36 46 Q32 56 38 64 Q42 73 35 83"/><path d="M65 26 Q60 36 63 46 Q67 56 61 64 Q57 73 64 83"/><path d="M29 85 Q34 80 40 82 Q46 79 52 82 Q58 79 64 82 Q70 80 73 86 Q67 93 50 93 Q33 93 29 85Z"/><path d="M44 34 Q47 41 44 49 M55 48 Q57 55 53 62 M46 66 Q49 71 46 76"/></g></svg><svg viewBox="0 0 100 100" style="top:92%;left:8%;width:70px;height:70px;transform:translate(-50%,-50%) rotate(-30deg)"><g filter="url(#pA)"><path d="M50 92 V46 M42 12 V34 Q42 46 50 46 Q58 46 58 34 V12 M50 12 V34"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M50 92 V46 M42 12 V34 Q42 46 50 46 Q58 46 58 34 V12 M50 12 V34"/></g></svg><svg viewBox="0 0 100 100" style="top:80%;left:58%;width:80px;height:80px;transform:translate(-50%,-50%) rotate(20deg)"><g filter="url(#pA)"><path d="M26 90 L56 30 L78 16"/><path d="M33 92 L62 33 L82 22"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M26 90 L56 30 L78 16"/><path d="M33 92 L62 33 L82 22"/></g></svg><svg viewBox="0 0 100 100" style="top:20%;left:93%;width:80px;height:80px;transform:translate(-50%,-50%) rotate(-18deg)"><g filter="url(#pA)"><path d="M26 42 Q16 34 22 28 Q30 24 32 34 H68 Q70 24 78 28 Q84 34 74 42 Q84 50 78 56 Q70 60 68 50 H32 Q30 60 22 56 Q16 50 26 42Z"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M26 42 Q16 34 22 28 Q30 24 32 34 H68 Q70 24 78 28 Q84 34 74 42 Q84 50 78 56 Q70 60 68 50 H32 Q30 60 22 56 Q16 50 26 42Z"/></g></svg><svg viewBox="0 0 100 100" style="top:62%;left:48%;width:80px;height:80px;transform:translate(-50%,-50%) rotate(6deg)"><g filter="url(#pA)"><ellipse cx="50" cy="40" rx="26" ry="9"/><path d="M24 40 V76 Q50 88 76 76 V40"/><path d="M30 33 L36 18 L44 26 L52 14 L58 24 L66 16 L70 32"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><ellipse cx="50" cy="40" rx="26" ry="9"/><path d="M24 40 V76 Q50 88 76 76 V40"/><path d="M30 33 L36 18 L44 26 L52 14 L58 24 L66 16 L70 32"/></g></svg><svg viewBox="0 0 100 100" style="top:96%;left:54%;width:80px;height:80px;transform:translate(-50%,-50%) rotate(-10deg)"><g filter="url(#pA)"><path d="M12 50 Q22 35 36 44 V56 Q22 65 12 50Z"/><path d="M20 46 L25 51 M25 46 L20 51"/><path d="M36 50 H80"/><path d="M46 39 V61 M56 37 V63 M66 39 V61"/><path d="M80 50 L92 38 L89 50 L92 62Z"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M12 50 Q22 35 36 44 V56 Q22 65 12 50Z"/><path d="M20 46 L25 51 M25 46 L20 51"/><path d="M36 50 H80"/><path d="M46 39 V61 M56 37 V63 M66 39 V61"/><path d="M80 50 L92 38 L89 50 L92 62Z"/></g></svg><svg viewBox="0 0 100 100" style="top:54%;left:70%;width:60px;height:60px;transform:translate(-50%,-50%) rotate(16deg)"><g filter="url(#pA)"><path d="M50 12 Q72 12 72 36 Q72 50 60 58 V70 H40 V58 Q28 50 28 36 Q28 12 50 12Z"/><path d="M40 77 H60 M43 84 H57"/><path d="M44 22 L50 31 L45 40"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M50 12 Q72 12 72 36 Q72 50 60 58 V70 H40 V58 Q28 50 28 36 Q28 12 50 12Z"/><path d="M40 77 H60 M43 84 H57"/><path d="M44 22 L50 31 L45 40"/></g></svg><svg viewBox="0 0 100 100" style="top:76%;left:22%;width:64px;height:64px;transform:translate(-50%,-50%) rotate(30deg)"><g filter="url(#pA)"><path d="M26 42 Q16 34 22 28 Q30 24 32 34 H68 Q70 24 78 28 Q84 34 74 42 Q84 50 78 56 Q70 60 68 50 H32 Q30 60 22 56 Q16 50 26 42Z"/></g><g filter="url(#pB)" transform="translate(1.6 1.1)" opacity=".6"><path d="M26 42 Q16 34 22 28 Q30 24 32 34 H68 Q70 24 78 28 Q84 34 74 42 Q84 50 78 56 Q70 60 68 50 H32 Q30 60 22 56 Q16 50 26 42Z"/></g></svg></div>
+<div class="wrap">
+
+  <!-- SETUP -->
+  <section id="setup">
+    <header class="hero" aria-label="Trashed Trivia">
+      <div class="kicker">Getting drunk on education</div>
+      <h1 class="title" aria-label="Trashed Trivia"><svg class="wm-a" viewBox="0 0 1416 224"><use href="#wm-trashed"/></svg><svg class="wm-b" viewBox="0 0 1133 224"><use href="#wm-trivia"/></svg></h1>
+    </header>
+    <p class="tag">Add your crew, draw a card, answer the question. The card says who's up and how many sips are on the line.</p>
+
+    <div class="panel">
+      <div class="label" style="margin-top:0">Players</div>
+      <form id="addForm" class="row">
+        <input id="nameInput" type="text" placeholder="Add a name" maxlength="20" autocomplete="off">
+        <button class="btn-pink" type="submit">Add</button>
+      </form>
+      <div class="chips" id="chips"></div>
+      <div class="hint" id="playerHint">Add at least 2 players. Each person gets a suit.</div>
+
+      <div class="label">Sips</div>
+      <div class="seg" id="sipSeg">
+        <button data-v="full" class="on">Full send</button>
+        <button data-v="chill">Chill (half sips)</button>
+      </div>
+
+      <div class="hint">Ace = 1 sip, 2–9 = face value, 10/J/Q/K = 10. Chill halves it, rounded up.</div>
+
+      <div class="label">Difficulty</div>
+      <div class="seg seg-stack" id="diffSeg">
+        <button data-v="random" class="on"><b>Random</b><span>Any question, any card</span></button>
+        <button data-v="extra"><b>Extra trashed</b><span>Big cards = hard questions</span></button>
+        <button data-v="light"><b>Lightly trashed</b><span>Small cards = hard questions</span></button>
+      </div>
+      <div class="hint" id="diffHint">Questions are a mix of easy, medium and hard.</div>
+
+      <div class="label">Shot clock</div>
+      <div class="seg" id="timerSeg">
+        <button data-v="0" class="on">Off</button>
+        <button data-v="15">15s</button>
+        <button data-v="30">30s</button>
+      </div>
+
+      <div style="margin-top:24px">
+        <button class="btn-big btn-lime" id="startBtn" disabled>Deal me in</button>
+      </div>
+    </div>
+
+    <div class="addq">
+      <button class="btn-ghost" id="openQ1" type="button">+ Add your own questions</button>
+      <div class="hint" id="bankInfo"></div>
+    </div>
+
+    <div class="rules">
+      <b>How it works.</b> Every player gets a stack of 13 cards (Ace through King) in their suit, and the whole deck is shuffled together. Draw a card: the suit picks who's up, and the rank sets the sips (Ace = 1, 2–9 = face value, 10/J/Q/K = 10).
+      Answer right and you <b>give out</b> that many sips. Get it wrong and you <b>drink</b> them.<br><br>
+      <b>Difficulty.</b> In <b>Extra trashed</b>, A–4 get easy questions, 5–9 medium, and 10–K hard, so the big sips come with the hard questions. <b>Lightly trashed</b> flips it: low cards get the hard questions and 10–K get easy ones.
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="hidden">
+    <div class="topbar">
+      <div class="mini-title" aria-label="Trashed Trivia"><svg class="wm-a" viewBox="0 0 1416 224"><use href="#wm-trashed"/></svg><svg class="wm-b" viewBox="0 0 1133 224"><use href="#wm-trivia"/></svg></div>
+      <div class="row">
+        <span class="hint" id="deckLeft" style="margin:0"></span>
+        <button class="btn-ghost" id="openQ2" type="button">+ Question</button>
+        <button class="btn-ghost" id="endBtn">Players</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="playing-card" id="pcard">
+        <div class="face back"><div class="cb"><div class="title card-wm"><svg class="wm-a" viewBox="0 0 1416 224"><use href="#wm-trashed"/></svg><svg class="wm-b" viewBox="0 0 1133 224"><use href="#wm-trivia"/></svg></div></div></div>
+        <div class="face front" id="cardFront">
+          <div class="corner" id="cTL"></div>
+          <div class="pip" id="cPip"></div>
+          <div class="corner br" id="cBR"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="drawArea">
+      <button class="btn-big btn-pink" id="drawBtn">Draw a card</button>
+    </div>
+
+    <div id="turnArea" class="hidden">
+      <div class="who pop">
+        <div class="name" id="whoName"></div>
+        <div class="stakes" id="whoStakes"></div>
+      </div>
+      <div class="panel qbox">
+        <div class="qmeta"><span id="qCount"></span><span class="timer" id="timer"></span></div>
+        <div class="question" id="qText"></div>
+        <div class="opts" id="opts"></div>
+        <div id="verdict"></div>
+        <div class="actions" id="turnActions">
+          <button class="btn-ghost" id="skipBtn">New question</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="board panel">
+      <div class="label" style="margin-top:0">Scoreboard</div>
+      <table>
+        <thead><tr><th>Player</th><th>Right</th><th>Given</th><th>Drank</th></tr></thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+    </div>
+    <div class="foot">Know your limits. Water counts as a sip if you say it does.</div>
+  </section>
+
+</div>
+
+<div class="modal hidden" id="qModal" role="dialog" aria-modal="true" aria-labelledby="qmTitle">
+  <div class="sheet panel">
+    <div class="sheet-head"><h2 id="qmTitle">Your questions</h2><button class="btn-ghost" id="qmClose" type="button">Done</button></div>
+    <form id="qForm" autocomplete="off">
+      <label class="flabel" for="fQ">Question</label>
+      <textarea id="fQ" rows="2" maxlength="220" placeholder="Who had to take a defensive driving course in the group?"></textarea>
+      <label class="flabel" for="fA">Right answer</label>
+      <input type="text" id="fA" maxlength="90" placeholder="Unfortunately Josie">
+      <label class="flabel">Wrong answers <span>(optional)</span></label>
+      <div class="wrongs">
+        <input type="text" id="fW1" maxlength="90" placeholder="Wrong answer">
+        <input type="text" id="fW2" maxlength="90" placeholder="Wrong answer">
+        <input type="text" id="fW3" maxlength="90" placeholder="Wrong answer">
+      </div>
+      <div class="hint">Add wrong answers to make it multiple choice. Leave them blank and the player answers out loud, then the group decides if they got it.</div>
+      <label class="flabel">Difficulty</label>
+      <div class="seg" id="fDiff">
+        <button type="button" data-v="easy" class="on">Easy</button>
+        <button type="button" data-v="medium">Medium</button>
+        <button type="button" data-v="hard">Hard</button>
+      </div>
+      <div style="margin-top:18px"><button class="btn-big" type="submit">Add question</button></div>
+      <div class="hint" id="fMsg" style="text-align:center"></div>
+    </form>
+
+    <div class="flabel" style="margin-top:24px">Added on this device (<span id="myCount">0</span>)</div>
+    <div id="myList"></div>
+
+    <div class="flabel" style="margin-top:24px">Share with friends</div>
+    <div class="hint" style="margin-top:0">Your questions are saved on this phone or computer. To move them to another device, copy them here and paste them in on the other one.</div>
+    <div class="row" style="margin-top:10px"><button class="btn-ghost" id="copyQ" type="button" style="flex:1">Copy my questions</button></div>
+    <textarea id="importBox" rows="3" placeholder="Paste copied questions here" style="margin-top:10px"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn-ghost" id="importBtn" type="button" style="flex:1">Add pasted questions</button></div>
+    <div class="hint" id="impMsg" style="text-align:center"></div>
+  </div>
+</div>
+
+<script>
+// ---------- Question bank: [question, correct, wrong, wrong, wrong] ----------
+const QUESTIONS = {
+easy: [
+["What is the largest planet in our solar system?", "Jupiter", "Saturn", "Neptune", "Earth"],
+["How many continents are there?", "7", "5", "6", "8"],
+["How many legs does a spider have?", "8", "6", "10", "12"],
+["Who painted the Mona Lisa?", "Leonardo da Vinci", "Michelangelo", "Raphael", "Vincent van Gogh"],
+["What is the largest ocean on Earth?", "Pacific", "Atlantic", "Indian", "Arctic"],
+["What is the smallest prime number?", "2", "1", "3", "0"],
+["Which planet is known as the Red Planet?", "Mars", "Venus", "Jupiter", "Mercury"],
+["What is the longest river in Africa?", "The Nile", "The Congo", "The Niger", "The Zambezi"],
+["Which gas do plants absorb from the air?", "Carbon dioxide", "Oxygen", "Nitrogen", "Helium"],
+["What is the hardest natural substance?", "Diamond", "Quartz", "Granite", "Titanium"],
+["How many sides does a hexagon have?", "6", "5", "7", "8"],
+["What is the fastest land animal?", "Cheetah", "Lion", "Pronghorn", "Greyhound"],
+["What is the freezing point of water in Fahrenheit?", "32°F", "0°F", "100°F", "212°F"],
+["What is the currency of Japan?", "Yen", "Won", "Yuan", "Ringgit"],
+["Who wrote Romeo and Juliet?", "William Shakespeare", "Charles Dickens", "Christopher Marlowe", "Jane Austen"],
+["What is the largest mammal on Earth?", "Blue whale", "African elephant", "Sperm whale", "Giraffe"],
+["How many players does a soccer team have on the field?", "11", "10", "9", "12"],
+["What is the tallest mountain above sea level?", "Mount Everest", "K2", "Kilimanjaro", "Denali"],
+["What language is mainly spoken in Brazil?", "Portuguese", "Spanish", "French", "Italian"],
+["What is the main ingredient in guacamole?", "Avocado", "Lime", "Tomato", "Peas"],
+["What is the largest US state by area?", "Alaska", "Texas", "California", "Montana"],
+["How many strings does a standard guitar have?", "6", "4", "5", "8"],
+["What is the largest organ of the human body?", "Skin", "Liver", "Brain", "Lungs"],
+["At sea level, water boils at what temperature in Celsius?", "100°C", "90°C", "212°C", "120°C"],
+["Which planet is famous for its big, bright rings?", "Saturn", "Jupiter", "Uranus", "Mars"],
+["What does \"www\" stand for in a web address?", "World Wide Web", "World Web Window", "Wide World Web", "Web Wide World"],
+["Who was the first person to walk on the moon?", "Neil Armstrong", "Buzz Aldrin", "Yuri Gagarin", "John Glenn"],
+["What is the square root of 144?", "12", "11", "14", "16"],
+["How many days are in a leap year?", "366", "365", "364", "367"],
+["What color do you get when you mix blue and yellow?", "Green", "Purple", "Orange", "Brown"],
+["In which city is the Colosseum?", "Rome", "Athens", "Florence", "Istanbul"],
+["What is the capital of Spain?", "Madrid", "Barcelona", "Seville", "Valencia"],
+["How many hours are in a week?", "168", "148", "144", "172"],
+["Which instrument usually has 88 keys?", "Piano", "Organ", "Accordion", "Harpsichord"],
+["Who developed the theory of relativity?", "Albert Einstein", "Isaac Newton", "Niels Bohr", "Stephen Hawking"],
+["Which city is nicknamed the Big Apple?", "New York City", "Chicago", "Los Angeles", "Boston"],
+["How many colors are traditionally in a rainbow?", "7", "6", "5", "8"],
+["Which planet is closest to the Sun?", "Mercury", "Venus", "Mars", "Earth"],
+["How many sides does a stop sign have?", "8", "6", "7", "10"],
+["What is the capital of Japan?", "Tokyo", "Kyoto", "Osaka", "Hiroshima"],
+["How many zeros are in one million?", "6", "5", "7", "9"],
+["What is the largest country by area?", "Russia", "Canada", "China", "United States"],
+["How many weeks are in a year?", "52", "50", "48", "54"],
+["Which country is shaped like a boot?", "Italy", "Greece", "Portugal", "Chile"],
+["In which sport would you do a slam dunk?", "Basketball", "Volleyball", "Tennis", "Rugby"],
+["How many states are in the USA?", "50", "48", "52", "51"],
+["Who was the first President of the United States?", "George Washington", "Thomas Jefferson", "John Adams", "Abraham Lincoln"],
+["What is a baby kangaroo called?", "Joey", "Kit", "Cub", "Pup"],
+["What is the capital of Egypt?", "Cairo", "Alexandria", "Giza", "Luxor"],
+["Which continent has no permanent human residents?", "Antarctica", "Australia", "South America", "Greenland"],
+["Which month has the fewest days?", "February", "April", "June", "November"],
+["How many rings are on the Olympic flag?", "5", "4", "6", "7"],
+["How many degrees are in a right angle?", "90", "45", "180", "100"],
+["Which country's flag is a red circle on a white background?", "Japan", "South Korea", "China", "Bangladesh"],
+["What is the capital of Germany?", "Berlin", "Munich", "Frankfurt", "Hamburg"],
+["What is the longest river in South America?", "The Amazon", "The Paraná", "The Orinoco", "The Rio Grande"],
+["How many cards are in a standard deck, not counting jokers?", "52", "54", "48", "56"],
+["Besides hearts, which card suit is red?", "Diamonds", "Clubs", "Spades", "Stars"],
+["How many players per team are on a basketball court?", "5", "6", "7", "4"],
+["Which drink is made from fermented grapes?", "Wine", "Beer", "Vodka", "Sake"],
+["What is the tallest animal in the world?", "Giraffe", "African elephant", "Ostrich", "Moose"],
+["Which US city is nicknamed the Windy City?", "Chicago", "Boston", "Denver", "San Francisco"],
+["What do you call an animal that eats only plants?", "Herbivore", "Carnivore", "Omnivore", "Insectivore"],
+["What is the capital of Mexico?", "Mexico City", "Guadalajara", "Cancún", "Monterrey"],
+["What is 15% of 200?", "30", "15", "25", "35"],
+["Which famous ship carried the Pilgrims to America in 1620?", "Mayflower", "Santa María", "Endeavour", "Victoria"],
+["How many sides does a triangle with all equal sides have?", "3", "4", "5", "6"],
+["What is the name of the fairy in Peter Pan?", "Tinker Bell", "Wendy", "Tiger Lily", "Pixie"],
+["What do caterpillars turn into?", "Butterflies or moths", "Beetles", "Dragonflies", "Grasshoppers"],
+["Which planet is the largest in the solar system after Jupiter?", "Saturn", "Neptune", "Uranus", "Earth"],
+["What is the capital of Greece?", "Athens", "Sparta", "Thessaloniki", "Crete"],
+["What is the main ingredient in a traditional omelette?", "Eggs", "Milk", "Cheese", "Flour"],
+["Which famous tower leans in Italy?", "Leaning Tower of Pisa", "Tower of London", "CN Tower", "Eiffel Tower"],
+["What is the opposite of \"north\" on a compass?", "South", "East", "West", "Up"],
+["Which animal is known for changing color to blend in?", "Chameleon", "Iguana", "Gecko", "Salamander"],
+["What is the largest bird in the world?", "Ostrich", "Emu", "Albatross", "Condor"],
+["Which fast-food chain is known for the Big Mac?", "McDonald's", "Burger King", "Wendy's", "Five Guys"],
+["What color is SpongeBob SquarePants?", "Yellow", "Pink", "Green", "Blue"],
+["In the 1939 movie The Wizard of Oz, what color are Dorothy's slippers?", "Ruby red", "Silver", "Gold", "Glass"],
+["Which band was John Lennon in?", "The Beatles", "The Rolling Stones", "The Who", "Queen"],
+["What is sushi traditionally wrapped in?", "Seaweed", "Rice paper", "Lettuce", "Soy paper"],
+["Who is Simba's father in The Lion King?", "Mufasa", "Scar", "Rafiki", "Zazu"],
+["How many books are in the main Harry Potter series?", "7", "6", "8", "5"],
+["What is the name of Harry Potter's owl?", "Hedwig", "Errol", "Hermes", "Crookshanks"],
+["Which Hogwarts house is Harry Potter sorted into?", "Gryffindor", "Slytherin", "Ravenclaw", "Hufflepuff"],
+["What is the main ingredient in traditional pesto?", "Basil", "Spinach", "Parsley", "Mint"],
+["Which superhero is known as the Man of Steel?", "Superman", "Iron Man", "Batman", "Captain America"],
+["What is Batman's secret identity?", "Bruce Wayne", "Clark Kent", "Peter Parker", "Tony Stark"],
+["What's the name of the cowboy toy in Toy Story?", "Woody", "Buzz", "Jessie", "Bo Peep"],
+["Which cheese goes on a classic Margherita pizza?", "Mozzarella", "Cheddar", "Parmesan", "Gouda"],
+["What do bartenders call a drink served straight from the bottle, no ice?", "Neat", "On the rocks", "Dirty", "Shaken"],
+["What's the name of the coffee shop in Friends?", "Central Perk", "The Grind", "Java Joe's", "Monk's"],
+["Which Disney princess has a pet tiger named Rajah?", "Jasmine", "Ariel", "Belle", "Mulan"],
+["In which city is the US version of The Office set?", "Scranton", "Stamford", "Pittsburgh", "Albany"],
+["Which singer is known as the Queen of Pop?", "Madonna", "Britney Spears", "Lady Gaga", "Mariah Carey"],
+["Which singer is known as the King of Pop?", "Michael Jackson", "Elvis Presley", "Prince", "Justin Timberlake"],
+["What is the fictional African country in Black Panther?", "Wakanda", "Zamunda", "Genovia", "Latveria"],
+["Paella is a classic dish from which country?", "Spain", "Italy", "Portugal", "Mexico"],
+["Besides chocolate and graham crackers, what's in a s'more?", "Marshmallow", "Peanut butter", "Caramel", "Banana"],
+["What is the name of Mario's brother?", "Luigi", "Wario", "Toad", "Yoshi"],
+["Which movie features the line \"I'll be back\"?", "The Terminator", "Rocky", "Die Hard", "RoboCop"],
+["How many main friends are there in the TV show Friends?", "6", "5", "4", "7"],
+["What food does Popeye eat to get strong?", "Spinach", "Broccoli", "Carrots", "Beans"],
+["Which coffee chain has a mermaid (a siren) in its logo?", "Starbucks", "Dunkin'", "Costa", "Peet's"],
+["What sport does Serena Williams play?", "Tennis", "Golf", "Basketball", "Volleyball"],
+["Which singer released the albums 1989 and Folklore?", "Taylor Swift", "Katy Perry", "Lorde", "Selena Gomez"],
+["In The Simpsons, what's the name of Homer's favorite bar?", "Moe's", "Cheers", "Paddy's", "MacLaren's"],
+["What food does Garfield love most?", "Lasagna", "Pizza", "Tacos", "Spaghetti"],
+["What color is Elmo?", "Red", "Blue", "Orange", "Yellow"],
+["Which instrument was Jimi Hendrix famous for playing?", "Guitar", "Drums", "Saxophone", "Piano"],
+["Which planet is Superman originally from?", "Krypton", "Mars", "Thanagar", "Apokolips"],
+["Which movie franchise follows Dominic Toretto and his crew?", "Fast & Furious", "Mission: Impossible", "Transformers", "The Expendables"],
+["What is the name of Dorothy's dog in The Wizard of Oz?", "Toto", "Rex", "Spot", "Benji"],
+["Who played Jack in Titanic?", "Leonardo DiCaprio", "Brad Pitt", "Matt Damon", "Johnny Depp"],
+["Which board game has properties like Boardwalk and Park Place?", "Monopoly", "Clue", "The Game of Life", "Risk"],
+["Which fruit is known for having its seeds on the outside?", "Strawberry", "Raspberry", "Kiwi", "Blueberry"],
+["What does KFC stand for?", "Kentucky Fried Chicken", "Kansas Fried Chicken", "King's Fried Chicken", "Kentucky Fresh Chicken"],
+["Which movie features a DeLorean time machine?", "Back to the Future", "Terminator 2", "The Time Machine", "Looper"],
+["Which fast-food chain's mascot is a red-haired girl with pigtails?", "Wendy's", "Arby's", "Sonic", "Dairy Queen"],
+["How many squares are on a chessboard?", "64", "81", "100", "48"]
+],
+medium: [
+["What is the capital of Australia?", "Canberra", "Sydney", "Melbourne", "Perth"],
+["What is the chemical symbol for gold?", "Au", "Ag", "Gd", "Go"],
+["How many minutes are in a day?", "1,440", "1,240", "1,640", "3,600"],
+["In which country is Machu Picchu?", "Peru", "Mexico", "Chile", "Bolivia"],
+["Which country gifted the Statue of Liberty to the US?", "France", "United Kingdom", "Spain", "Italy"],
+["In what year did the Titanic sink?", "1912", "1905", "1921", "1898"],
+["What is the capital of Canada?", "Ottawa", "Toronto", "Vancouver", "Montreal"],
+["How many bones are in the adult human body?", "206", "196", "216", "256"],
+["In which country is the Great Barrier Reef?", "Australia", "Indonesia", "Philippines", "New Zealand"],
+["What does DNA stand for?", "Deoxyribonucleic acid", "Dinitrogen acid", "Deoxyribose nitrate acid", "Dual nucleic acid"],
+["Which ocean lies between Africa and Australia?", "Indian Ocean", "Atlantic Ocean", "Pacific Ocean", "Southern Ocean"],
+["Which language has the most native speakers?", "Mandarin Chinese", "English", "Spanish", "Hindi"],
+["How many teeth does an adult human typically have?", "32", "28", "30", "36"],
+["Which metal is liquid at room temperature?", "Mercury", "Lead", "Tin", "Aluminum"],
+["What is the smallest country in the world?", "Vatican City", "Monaco", "San Marino", "Liechtenstein"],
+["In what year did World War II end?", "1945", "1944", "1946", "1939"],
+["Which blood type is the universal donor?", "O negative", "AB positive", "A negative", "B positive"],
+["What is the longest bone in the human body?", "Femur", "Tibia", "Humerus", "Spine"],
+["Who painted The Starry Night?", "Vincent van Gogh", "Claude Monet", "Pablo Picasso", "Salvador Dalí"],
+["Which planet rotates on its side?", "Uranus", "Neptune", "Saturn", "Venus"],
+["What is the hottest planet in our solar system?", "Venus", "Mercury", "Mars", "Jupiter"],
+["Which country hosts the Running of the Bulls in Pamplona?", "Spain", "Mexico", "Portugal", "Argentina"],
+["What is a group of crows called?", "A murder", "A flock", "A gaggle", "A parliament"],
+["What is a group of lions called?", "A pride", "A pack", "A herd", "A troop"],
+["Which vitamin does your skin make from sunlight?", "Vitamin D", "Vitamin C", "Vitamin A", "Vitamin B12"],
+["Who came up with the laws of motion and universal gravitation?", "Isaac Newton", "Galileo Galilei", "Albert Einstein", "Johannes Kepler"],
+["What is the most abundant gas in Earth's atmosphere?", "Nitrogen", "Oxygen", "Carbon dioxide", "Argon"],
+["What is the plural of \"moose\"?", "Moose", "Meese", "Mooses", "Moosen"],
+["What is the main ingredient in hummus?", "Chickpeas", "Lentils", "Black beans", "Fava beans"],
+["Which country held the ancient Olympic Games?", "Greece", "Italy", "Egypt", "Turkey"],
+["Which part of the body contains the cornea?", "Eye", "Ear", "Skin", "Heart"],
+["What is the capital of South Korea?", "Seoul", "Busan", "Incheon", "Pyongyang"],
+["What is a female deer called?", "Doe", "Hind", "Mare", "Vixen"],
+["Which country produces the most coffee?", "Brazil", "Colombia", "Vietnam", "Ethiopia"],
+["Who discovered penicillin?", "Alexander Fleming", "Louis Pasteur", "Marie Curie", "Joseph Lister"],
+["How many years are in a \"score\"?", "20", "10", "12", "25"],
+["What is the largest internal organ in the human body?", "Liver", "Brain", "Lungs", "Stomach"],
+["What is the largest species of shark?", "Whale shark", "Great white", "Hammerhead", "Tiger shark"],
+["What is the fear of spiders called?", "Arachnophobia", "Claustrophobia", "Acrophobia", "Agoraphobia"],
+["Which of these mammals lays eggs?", "Platypus", "Beaver", "Otter", "Armadillo"],
+["What is the capital of Ireland?", "Dublin", "Cork", "Belfast", "Galway"],
+["Which body of water separates England and France?", "The English Channel", "The North Sea", "The Irish Sea", "The Bay of Biscay"],
+["How many seconds are in an hour?", "3,600", "360", "6,000", "1,440"],
+["What is the capital of New Zealand?", "Wellington", "Auckland", "Christchurch", "Queenstown"],
+["In what year did the Berlin Wall fall?", "1989", "1991", "1987", "1985"],
+["Who wrote Pride and Prejudice?", "Jane Austen", "Charlotte Brontë", "Emily Dickinson", "Mary Shelley"],
+["Which organ produces insulin?", "Pancreas", "Liver", "Kidneys", "Gallbladder"],
+["In what year did the first iPhone come out?", "2007", "2005", "2008", "2009"],
+["In E = mc², what does the \"c\" stand for?", "The speed of light", "A constant", "Charge", "Carbon"],
+["Who painted the ceiling of the Sistine Chapel?", "Michelangelo", "Leonardo da Vinci", "Raphael", "Donatello"],
+["Which composer kept writing music after going deaf?", "Beethoven", "Mozart", "Bach", "Chopin"],
+["In what year did humans first land on the Moon?", "1969", "1965", "1972", "1959"],
+["What does SPF stand for on sunscreen?", "Sun Protection Factor", "Skin Protection Formula", "Solar Particle Filter", "Sun Proof Finish"],
+["Who is credited with patenting the telephone in 1876?", "Alexander Graham Bell", "Thomas Edison", "Nikola Tesla", "Samuel Morse"],
+["Which gemstone is famously red?", "Ruby", "Sapphire", "Emerald", "Topaz"],
+["Which planet is farthest from the Sun?", "Neptune", "Uranus", "Pluto", "Saturn"],
+["What do you call a word that reads the same backward and forward?", "Palindrome", "Anagram", "Homonym", "Acronym"],
+["How many presidents' faces are carved into Mount Rushmore?", "4", "3", "5", "6"],
+["Which blood cells fight infection?", "White blood cells", "Red blood cells", "Platelets", "Plasma cells"],
+["What is the most common element in the universe?", "Hydrogen", "Helium", "Oxygen", "Carbon"],
+["Mount Kilimanjaro is in which country?", "Tanzania", "Kenya", "Uganda", "Ethiopia"],
+["What is the chemical symbol for sodium?", "Na", "So", "Sd", "S"],
+["Tequila is made from which plant?", "Agave", "Cactus", "Sugar cane", "Aloe"],
+["What breed of dog is Scooby-Doo?", "Great Dane", "Labrador", "Beagle", "Bulldog"],
+["Which app started out as Musical.ly?", "TikTok", "Instagram", "Snapchat", "Vine"],
+["Nutella was created in which country?", "Italy", "France", "Switzerland", "Belgium"],
+["What's the name of the bar in How I Met Your Mother?", "MacLaren's", "Moe's", "Paddy's", "Cheers"],
+["In what year did the first Star Wars movie come out?", "1977", "1980", "1975", "1983"],
+["Which was the first non-English-language film to win Best Picture at the Oscars?", "Parasite", "Roma", "Crouching Tiger, Hidden Dragon", "Life Is Beautiful"],
+["How many Infinity Stones are there in the Marvel movies?", "6", "5", "7", "4"],
+["Which band recorded \"Bohemian Rhapsody\"?", "Queen", "The Beatles", "Led Zeppelin", "Pink Floyd"],
+["Which hobbit did Elijah Wood play in The Lord of the Rings?", "Frodo Baggins", "Bilbo Baggins", "Samwise Gamgee", "Pippin"],
+["What does IPA stand for on a beer menu?", "India Pale Ale", "International Pale Ale", "Imperial Pilsner Ale", "Irish Pale Ale"],
+["Which spice gives curry its yellow color?", "Turmeric", "Saffron", "Cumin", "Paprika"],
+["Which rapper's real name is Marshall Mathers?", "Eminem", "Jay-Z", "Drake", "Snoop Dogg"],
+["Which singer's real name is Stefani Germanotta?", "Lady Gaga", "Gwen Stefani", "Madonna", "Katy Perry"],
+["In Breaking Bad, what alias does Walter White use?", "Heisenberg", "Scarface", "The Cook", "Mr. Blue"],
+["Which cocktail is made with rum, mint, lime, sugar and soda water?", "Mojito", "Margarita", "Daiquiri", "Piña colada"],
+["Which cocktail is made with tequila, lime juice and triple sec?", "Margarita", "Mojito", "Cosmopolitan", "Mai tai"],
+["Who was the drummer in The Beatles?", "Ringo Starr", "Paul McCartney", "George Harrison", "John Lennon"],
+["In Friends, what's the name of Ross's pet monkey?", "Marcel", "Bubbles", "Abu", "George"],
+["Which company created Sonic the Hedgehog?", "Sega", "Nintendo", "Sony", "Atari"],
+["What is the name of the kingdom in Frozen?", "Arendelle", "Corona", "Agrabah", "Atlantica"],
+["Which girl group was Beyoncé in before going solo?", "Destiny's Child", "TLC", "The Pussycat Dolls", "Spice Girls"],
+["How many members were in the Spice Girls?", "5", "4", "6", "3"],
+["Gouda cheese comes from which country?", "The Netherlands", "Belgium", "Germany", "Switzerland"],
+["What does \"al dente\" mean when cooking pasta?", "Firm to the bite", "Very soft", "With butter", "Overcooked"],
+["Marzipan is made mostly from which nut?", "Almond", "Walnut", "Hazelnut", "Cashew"],
+["Which movie is about a giant shark terrorizing Amity Island?", "Jaws", "The Meg", "Deep Blue Sea", "Open Water"],
+["What is the name of the town in Stranger Things?", "Hawkins", "Riverdale", "Derry", "Twin Peaks"],
+["Which artist made the famous Campbell's Soup Cans pop art?", "Andy Warhol", "Roy Lichtenstein", "Keith Haring", "Jackson Pollock"],
+["Which chef is famous for yelling on Hell's Kitchen?", "Gordon Ramsay", "Bobby Flay", "Guy Fieri", "Jamie Oliver"],
+["Which actor played Wolverine in the X-Men movies?", "Hugh Jackman", "Chris Hemsworth", "Ryan Reynolds", "Russell Crowe"],
+["Which cheese is used in traditional tiramisu?", "Mascarpone", "Ricotta", "Cream cheese", "Burrata"],
+["Which liquor goes in a classic Moscow Mule?", "Vodka", "Gin", "Rum", "Whiskey"],
+["Which Beatles album cover shows the band crossing a street?", "Abbey Road", "Let It Be", "Revolver", "Help!"],
+["Who directed Jurassic Park?", "Steven Spielberg", "James Cameron", "George Lucas", "Ridley Scott"],
+["Who directed Pulp Fiction?", "Quentin Tarantino", "Martin Scorsese", "Guy Ritchie", "David Fincher"],
+["What was the name of Elvis Presley's mansion?", "Graceland", "Neverland", "Xanadu", "Paisley Park"],
+["Poutine is a classic dish from which country?", "Canada", "France", "Belgium", "Ireland"],
+["Traditional Japanese sake is brewed from which grain?", "Rice", "Barley", "Wheat", "Corn"],
+["Which TV show is set in Pawnee, Indiana?", "Parks and Recreation", "The Office", "Brooklyn Nine-Nine", "Community"],
+["What was the first fully computer-animated feature film?", "Toy Story", "A Bug's Life", "Shrek", "Antz"],
+["Which composer wrote The Four Seasons?", "Vivaldi", "Bach", "Mozart", "Handel"],
+["In the US version of Monopoly, which property costs the most?", "Boardwalk", "Park Place", "Marvin Gardens", "Illinois Avenue"],
+["In Mean Girls, which day of the week do they wear pink?", "Wednesday", "Friday", "Monday", "Tuesday"],
+["Which color pill does Neo take in The Matrix?", "Red", "Blue", "Green", "White"],
+["What is the name of the hero in The Legend of Zelda games?", "Link", "Zelda", "Ganon", "Epona"],
+["Which singer released the album Lemonade?", "Beyoncé", "Rihanna", "Adele", "Alicia Keys"],
+["Which band's album The Dark Side of the Moon has a prism on the cover?", "Pink Floyd", "Led Zeppelin", "The Who", "Fleetwood Mac"],
+["Baba ghanoush is mainly made from which vegetable?", "Eggplant", "Chickpeas", "Zucchini", "Red pepper"],
+["What berry gives gin its main flavor?", "Juniper", "Elderberry", "Blackberry", "Cranberry"]
+],
+hard: [
+["How many hearts does an octopus have?", "3", "1", "2", "8"],
+["Technically, what is the largest desert in the world?", "Antarctica", "The Sahara", "The Gobi", "The Arabian Desert"],
+["What is the national animal of Scotland?", "Unicorn", "Lion", "Red deer", "Golden eagle"],
+["Which is the only mammal capable of true flight?", "Bat", "Flying squirrel", "Sugar glider", "Colugo"],
+["Which country has the most pyramids?", "Sudan", "Egypt", "Mexico", "Peru"],
+["Which letter doesn't appear in any US state name?", "Q", "Z", "X", "J"],
+["What is the rarest blood type in the US?", "AB negative", "O negative", "B negative", "A negative"],
+["Which element has the chemical symbol K?", "Potassium", "Krypton", "Calcium", "Phosphorus"],
+["What is the capital of Turkey?", "Ankara", "Istanbul", "Izmir", "Antalya"],
+["Which planet has the shortest day?", "Jupiter", "Saturn", "Earth", "Mercury"],
+["How many time zones does Russia have?", "11", "9", "7", "13"],
+["Which country has the most natural lakes?", "Canada", "Russia", "Finland", "United States"],
+["What is the smallest bone in the human body?", "Stapes", "Coccyx", "Hyoid", "Pisiform"],
+["What is the capital of Brazil?", "Brasília", "Rio de Janeiro", "São Paulo", "Salvador"],
+["Which country has the longest coastline?", "Canada", "Russia", "Norway", "Indonesia"],
+["Which country is often said to have the most islands?", "Sweden", "Norway", "Indonesia", "Philippines"],
+["What is the national language of Pakistan?", "Urdu", "Hindi", "Punjabi", "Arabic"],
+["On which planet is a day longer than its year?", "Venus", "Mercury", "Mars", "Neptune"],
+["What is the deepest known point in the ocean?", "Challenger Deep", "Puerto Rico Trench", "Java Trench", "Tonga Trench"],
+["Which country was the first to give women the national vote?", "New Zealand", "United States", "United Kingdom", "Finland"],
+["What is a group of owls called?", "A parliament", "A murder", "A council", "A flock"],
+["How many dots are on a pair of standard dice in total?", "42", "36", "48", "40"],
+["Which is the only US state that borders exactly one other state?", "Maine", "Florida", "Washington", "Rhode Island"],
+["What is the capital of Switzerland?", "Bern", "Zurich", "Geneva", "Basel"],
+["Which of these animals has the longest pregnancy?", "Elephant", "Giraffe", "Blue whale", "Rhino"],
+["How many sides does a dodecagon have?", "12", "10", "20", "11"],
+["What is the largest moon in the solar system?", "Ganymede", "Titan", "Europa", "Earth's Moon"],
+["Which country has three capital cities?", "South Africa", "Switzerland", "India", "Netherlands"],
+["How many bones does a shark have?", "0", "50", "200", "300"],
+["Which US state has the longest coastline?", "Alaska", "Florida", "California", "Hawaii"],
+["Roughly how fast does light travel?", "300,000 km per second", "30,000 km per second", "3,000,000 km per second", "150,000 km per second"],
+["What is the capital of Morocco?", "Rabat", "Casablanca", "Marrakesh", "Fez"],
+["Timbuktu is a city in which country?", "Mali", "Niger", "Morocco", "Chad"],
+["What is the capital of Vietnam?", "Hanoi", "Ho Chi Minh City", "Da Nang", "Hue"],
+["Which planet has the most known moons?", "Saturn", "Jupiter", "Uranus", "Neptune"],
+["What is the most spoken language in Switzerland?", "German", "French", "Italian", "Romansh"],
+["Which artist painted The Persistence of Memory (the melting clocks)?", "Salvador Dalí", "René Magritte", "Pablo Picasso", "Joan Miró"],
+["The Great Red Spot is a giant storm on which planet?", "Jupiter", "Saturn", "Neptune", "Mars"],
+["What is the main language spoken in Iran?", "Persian (Farsi)", "Arabic", "Turkish", "Kurdish"],
+["How many hearts does an earthworm have?", "5", "1", "2", "3"],
+["Which film won the very first Oscar for Best Picture?", "Wings", "Sunrise", "The Jazz Singer", "Metropolis"],
+["What is widely cited as the best-selling album of all time?", "Thriller", "Back in Black", "The Dark Side of the Moon", "Abbey Road"],
+["What is coulrophobia the fear of?", "Clowns", "Dolls", "Birds", "Crowds"],
+["Which spice is the most expensive by weight?", "Saffron", "Vanilla", "Cardamom", "Cinnamon"],
+["Goulash is the national dish of which country?", "Hungary", "Poland", "Austria", "Czech Republic"],
+["In what year did MTV launch?", "1981", "1985", "1979", "1990"],
+["Which band's video was the first ever played on MTV?", "The Buggles", "Duran Duran", "Queen", "The Police"],
+["What is the name of the spaceship in the 1979 movie Alien?", "Nostromo", "Sulaco", "Serenity", "Discovery One"],
+["Which pasta's name means \"little tongues\" in Italian?", "Linguine", "Penne", "Farfalle", "Fusilli"],
+["Which country drinks the most coffee per person?", "Finland", "Italy", "United States", "Brazil"],
+["Hawaiian pizza was invented in which country?", "Canada", "United States", "Italy", "Australia"],
+["How many strings does a standard concert pedal harp have?", "47", "36", "52", "40"],
+["By law, bourbon must be made mostly from which grain?", "Corn", "Barley", "Rye", "Wheat"],
+["What is the longest-running American animated TV series?", "The Simpsons", "South Park", "Family Guy", "SpongeBob SquarePants"],
+["Which musician starred in the 1984 movie Purple Rain?", "Prince", "Michael Jackson", "David Bowie", "Lionel Richie"],
+["Most \"wasabi\" served outside Japan is actually mostly what?", "Horseradish", "Mustard", "Avocado", "Seaweed"],
+["The Rubik's Cube was invented in which country?", "Hungary", "Japan", "Germany", "Russia"],
+["Which toy was originally sold as a wallpaper cleaner?", "Play-Doh", "Silly Putty", "Slinky", "Etch A Sketch"],
+["In what year was the first Harry Potter book published?", "1997", "1999", "1995", "2001"],
+["Which TV chef is famous for shouting \"Bam!\"?", "Emeril Lagasse", "Bobby Flay", "Wolfgang Puck", "Alton Brown"],
+["Which pasta's name means \"butterflies\" in Italian?", "Farfalle", "Fusilli", "Rigatoni", "Orecchiette"],
+["Which country is the world's largest producer of avocados?", "Mexico", "Peru", "Colombia", "Spain"],
+["Which Star Wars character says \"I am your father\"?", "Darth Vader", "Obi-Wan Kenobi", "Emperor Palpatine", "Yoda"],
+["What was Walt Disney's first major animated feature film?", "Snow White and the Seven Dwarfs", "Pinocchio", "Fantasia", "Cinderella"],
+["What fruit is traditionally used to make the Italian liqueur limoncello?", "Lemons", "Limes", "Oranges", "Grapefruit"],
+["Which singer had a hit with a song from the 1992 movie The Bodyguard?", "Whitney Houston", "Celine Dion", "Mariah Carey", "Toni Braxton"]
+],
+};
+
+// ---------- State ----------
+const SUITS = [
+  {s:"♥", red:true},{s:"♠", red:false},{s:"♦", red:true},{s:"♣", red:false}
+];
+const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+let players = []; // {name, right, answered, given, drank}
+let sipMode = "full", timerSecs = 0, diffMode = "random";
+let deck = [], current = null, timerId = null, answered = false;
+
+const $ = id => document.getElementById(id);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function suitFor(i){return SUITS[i % SUITS.length]}
+function rankValue(r){ if(r==="A") return 1; if(["10","J","Q","K"].includes(r)) return 10; return +r }
+function sipsFor(r){ const v = rankValue(r); return sipMode==="chill" ? Math.ceil(v/2) : v }
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+// remember names between visits (best-effort)
+try{ const saved = JSON.parse(localStorage.getItem("tt-players")||"[]"); if(Array.isArray(saved)) players = saved.map(n=>newPlayer(n)); }catch(e){}
+function saveNames(){ try{ localStorage.setItem("tt-players", JSON.stringify(players.map(p=>p.name))) }catch(e){} }
+function newPlayer(name){ return {name, right:0, answered:0, given:0, drank:0} }
+
+// ---------- Setup ----------
+function renderChips(){
+  $("chips").innerHTML = players.map((p,i)=>{
+    const su = suitFor(i);
+    return `<div class="chip"><span class="suit" style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span>${esc(p.name)}<button aria-label="Remove ${esc(p.name)}" data-i="${i}">×</button></div>`;
+  }).join("");
+  $("startBtn").disabled = players.length < 2;
+  $("playerHint").textContent = players.length < 2 ? "Add at least 2 players. Each person gets a suit." :
+    players.length > 4 ? "More than 4 players: suits repeat, but every player gets their own stack of cards." :
+    `${players.length} players ready.`;
+}
+$("chips").addEventListener("click", e=>{
+  const i = e.target.dataset.i; if(i===undefined) return;
+  players.splice(+i,1); saveNames(); renderChips();
+});
+$("addForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const n = $("nameInput").value.trim();
+  if(!n){ $("playerHint").textContent = "Type a name first, then tap Add."; $("nameInput").focus(); return; }
+  if(players.some(p=>p.name.toLowerCase()===n.toLowerCase())){ $("playerHint").textContent = `${n} is already playing. Try a nickname or last initial.`; $("nameInput").select(); return; }
+  players.push(newPlayer(n)); $("nameInput").value=""; saveNames(); renderChips();
+});
+function segment(id, cb){
+  $(id).addEventListener("click", e=>{
+    const b = e.target.closest("button"); if(!b) return;
+    [...$(id).children].forEach(x=>x.classList.toggle("on", x===b)); cb(b.dataset.v);
+  });
+}
+segment("sipSeg", v=>sipMode=v);
+segment("timerSeg", v=>timerSecs=+v);
+const DIFF_HINTS = {
+  random:"Questions are a mix of easy, medium and hard.",
+  extra:"A–4 easy · 5–9 medium · 10–K hard. High stakes, high difficulty.",
+  light:"A–4 hard · 5–9 medium · 10–K easy. Hard questions only risk a few sips."
+};
+segment("diffSeg", v=>{ diffMode=v; $("diffHint").textContent = DIFF_HINTS[v]; });
+
+$("startBtn").addEventListener("click", ()=>{
+  players.forEach(p=>Object.assign(p,{right:0,answered:0,given:0,drank:0}));
+  buildDeck();
+  $("setup").classList.add("hidden"); $("game").classList.remove("hidden");
+  resetTable(); renderBoard(); window.scrollTo(0,0);
+});
+$("endBtn").addEventListener("click", ()=>{
+  stopTimer();
+  $("game").classList.add("hidden"); $("setup").classList.remove("hidden"); renderChips();
+});
+
+// ---------- Deck ----------
+function buildDeck(){
+  deck = [];
+  players.forEach((p,pi)=> RANKS.forEach(r=> deck.push({pi, r})));
+  shuffle(deck);
+}
+function tierFor(rank){
+  if(diffMode==="random"){
+    // weight by bank size so every question comes up about equally often
+    const n = {easy:poolFor("easy").length, medium:poolFor("medium").length, hard:poolFor("hard").length};
+    let r = Math.random()*(n.easy+n.medium+n.hard);
+    return r < n.easy ? "easy" : (r -= n.easy) < n.medium ? "medium" : "hard";
+  }
+  const v = rankValue(rank);
+  const band = (rank==="A"||v<=4) ? "low" : v<=9 ? "mid" : "high";
+  if(band==="mid") return "medium";
+  if(diffMode==="extra") return band==="high" ? "hard" : "easy";
+  return band==="high" ? "easy" : "hard";
+}
+// ---------- Question pool: built-in + your own, no repeats until all are used ----------
+let custom = [];   // {q, a, w:[...], t}
+let seen = new Set();
+try{ const c = JSON.parse(localStorage.getItem("tt-custom")||"[]"); if(Array.isArray(c)) custom = c.filter(validQ); }catch(e){}
+try{ const s = JSON.parse(localStorage.getItem("tt-seen")||"[]"); if(Array.isArray(s)) seen = new Set(s); }catch(e){}
+function validQ(c){ return c && typeof c.q==="string" && c.q.trim() && typeof c.a==="string" && c.a.trim() && ["easy","medium","hard"].includes(c.t) }
+function saveCustom(){ try{ localStorage.setItem("tt-custom", JSON.stringify(custom)) }catch(e){} }
+function saveSeen(){ try{ localStorage.setItem("tt-seen", JSON.stringify([...seen])) }catch(e){} }
+function qKey(arr){ return arr[0].trim().toLowerCase() }
+function poolFor(tier){
+  return QUESTIONS[tier].concat(custom.filter(c=>c.t===tier).map(c=>[c.q, c.a, ...(c.w||[])]));
+}
+function nextQuestion(tier){
+  const pool = poolFor(tier);
+  let fresh = pool.filter(q=>!seen.has(qKey(q)));
+  if(!fresh.length){ pool.forEach(q=>seen.delete(qKey(q))); fresh = pool; }
+  const q = fresh[Math.floor(Math.random()*fresh.length)];
+  seen.add(qKey(q)); saveSeen(); renderBankInfo();
+  return q;
+}
+function renderBankInfo(){
+  const all = ["easy","medium","hard"].flatMap(poolFor);
+  const fresh = all.filter(q=>!seen.has(qKey(q))).length;
+  $("bankInfo").innerHTML = `${all.length} questions (${custom.length} of yours) · ${fresh} not played yet on this device` +
+    (fresh < all.length ? ` · <button class="linkbtn" id="resetSeen" type="button">start fresh</button>` : "");
+  const r = $("resetSeen"); if(r) r.onclick = ()=>{ seen = new Set(); saveSeen(); renderBankInfo(); };
+}
+
+// ---------- Turn ----------
+function resetTable(){
+  $("pcard").classList.remove("flipped");
+  $("drawArea").classList.remove("hidden");
+  $("turnArea").classList.add("hidden");
+  $("deckLeft").textContent = `${deck.length} cards left`;
+}
+$("drawBtn").addEventListener("click", ()=>{
+  if(!deck.length) buildDeck();
+  const c = deck.pop();
+  const su = suitFor(c.pi), p = players[c.pi], sips = sipsFor(c.r);
+  current = {card:c, player:p, sips, tier:null};
+  $("cardFront").classList.toggle("red", su.red);
+  $("cTL").innerHTML = `${c.r}<small>${su.s}</small>`;
+  $("cBR").innerHTML = `${c.r}<small>${su.s}</small>`;
+  $("cPip").textContent = su.s;
+  $("pcard").classList.remove("flipped"); void $("pcard").offsetWidth;
+  $("pcard").classList.add("flipped");
+  $("deckLeft").textContent = deck.length ? `${deck.length} cards left` : "Last card! Deck reshuffles next draw";
+  $("drawArea").classList.add("hidden");
+  setTimeout(()=>{
+    $("whoName").textContent = `${p.name}, you're up`;
+    $("whoStakes").textContent = `${sips} sip${sips===1?"":"s"} on the line`;
+    $("turnArea").classList.remove("hidden");
+    $("turnArea").querySelector(".who").classList.remove("pop"); void $("turnArea").offsetWidth;
+    $("turnArea").querySelector(".who").classList.add("pop");
+    showQuestion();
+  }, 450);
+});
+
+function showQuestion(){
+  answered = false;
+  if(!current.tier || diffMode==="random") current.tier = tierFor(current.card.r);
+  const tier = current.tier;
+  const q = nextQuestion(tier);
+  current.q = q;
+  const wrongs = q.slice(2).filter(w=>w && w.trim());
+  $("qCount").innerHTML = `<span class="diff ${tier}">${tier}</span>`;
+  $("qText").textContent = q[0];
+  if(wrongs.length){
+    const opts = shuffle([{t:q[1], ok:true}, ...wrongs.map(t=>({t, ok:false}))]);
+    $("opts").innerHTML = opts.map((o,i)=>`<button class="opt" data-ok="${o.ok}"><span class="k">${"ABCD"[i]}</span><span>${esc(o.t)}</span></button>`).join("");
+  } else {
+    $("opts").innerHTML = `<div class="reveal"><div class="hint" style="margin:0 0 12px">Say your answer out loud, then reveal.</div><button class="btn-pink" id="revealBtn" type="button">Reveal answer</button></div>`;
+    $("revealBtn").onclick = ()=>{
+      stopTimer(); $("turnActions").innerHTML = "";
+      $("opts").innerHTML = `<div class="reveal"><div class="hint" style="margin:0">The answer is</div><div class="ans">${esc(q[1])}</div><div class="judge"><button class="btn-green" id="gotIt" type="button">They got it</button><button class="btn-pink" id="missedIt" type="button">They missed it</button></div></div>`;
+      $("gotIt").onclick = ()=>resolve(true, null, false, true);
+      $("missedIt").onclick = ()=>resolve(false, null, false, true);
+    };
+  }
+  $("verdict").innerHTML = "";
+  $("turnActions").innerHTML = `<button class="btn-ghost" id="skipBtn">New question</button>`;
+  $("skipBtn").onclick = ()=>{ stopTimer(); showQuestion(); };
+  startTimer();
+}
+$("opts").addEventListener("click", e=>{
+  const b = e.target.closest(".opt"); if(!b || answered) return;
+  resolve(b.dataset.ok==="true", b);
+});
+
+function resolve(correct, chosen, timeUp=false, judged=false){
+  answered = true; stopTimer();
+  const p = current.player, s = current.sips;
+  if(timeUp && !$("opts").querySelector(".opt")) $("opts").innerHTML = "";
+  if(judged) $("opts").innerHTML = "";
+  [...$("opts").querySelectorAll(".opt")].forEach(o=>{
+    o.disabled = true;
+    if(o.dataset.ok==="true") o.classList.add("right");
+  });
+  if(chosen && !correct) chosen.classList.add("wrong");
+  p.answered++;
+  if(correct){ p.right++; p.given += s; }
+  else { p.drank += s; }
+  $("verdict").innerHTML = correct
+    ? `<div class="verdict good pop"><div class="display">Give out ${s}!</div><p>${esc(p.name)} got it. Hand out ${s} sip${s===1?"":"s"} however you like.</p></div>`
+    : `<div class="verdict bad pop"><div class="display">Drink ${s}.</div><p>${timeUp?"Time's up. ":""}The answer was <b style="color:var(--ink)">${esc(current.q[1])}</b>.</p></div>`;
+  $("turnActions").innerHTML = `<button class="btn-big btn-pink" id="nextBtn">Next card</button>`;
+  $("nextBtn").onclick = ()=>{ resetTable(); window.scrollTo({top:0,behavior:"smooth"}); };
+  renderBoard();
+}
+
+// ---------- Timer ----------
+function startTimer(){
+  stopTimer();
+  if(!timerSecs){ $("timer").textContent = ""; return; }
+  let left = timerSecs;
+  const tick = ()=>{ $("timer").textContent = `${left}s`; $("timer").classList.toggle("low", left<=5); };
+  tick();
+  timerId = setInterval(()=>{ left--; tick(); if(left<=0){ stopTimer(); if(!answered) resolve(false, null, true); } }, 1000);
+}
+function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
+
+// ---------- Scoreboard ----------
+function renderBoard(){
+  const rows = players.map((p,i)=>({p,i})).sort((a,b)=> (b.p.given-b.p.drank)-(a.p.given-a.p.drank));
+  $("boardBody").innerHTML = rows.map(({p,i})=>{
+    const su = suitFor(i);
+    return `<tr><td><span style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span> ${esc(p.name)}</td><td>${p.right}/${p.answered}</td><td class="give">${p.given}</td><td class="take">${p.drank}</td></tr>`;
+  }).join("");
+}
+
+// ---------- Your questions ----------
+let fTier = "easy";
+segment("fDiff", v=>fTier=v);
+function openQ(){ $("qModal").classList.remove("hidden"); renderMyList(); setTimeout(()=>$("fQ").focus(), 50); }
+function closeQ(){ $("qModal").classList.add("hidden"); renderBankInfo(); }
+$("openQ1").onclick = openQ; $("openQ2").onclick = openQ; $("qmClose").onclick = closeQ;
+$("qModal").addEventListener("click", e=>{ if(e.target.id==="qModal") closeQ(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("qModal").classList.contains("hidden")) closeQ(); });
+$("qForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const q = $("fQ").value.trim(), a = $("fA").value.trim();
+  const w = ["fW1","fW2","fW3"].map(id=>$(id).value.trim()).filter(Boolean);
+  if(!q || !a){ $("fMsg").textContent = "Add a question and its right answer."; return; }
+  if(["easy","medium","hard"].flatMap(poolFor).some(x=>qKey(x)===q.toLowerCase())){ $("fMsg").textContent = "That question's already in the game."; return; }
+  custom.push({q, a, w, t:fTier}); saveCustom();
+  ["fQ","fA","fW1","fW2","fW3"].forEach(id=>$(id).value="");
+  $("fMsg").textContent = "Added! It's in the mix now.";
+  renderMyList(); $("fQ").focus();
+});
+function renderMyList(){
+  $("myCount").textContent = custom.length;
+  $("myList").innerHTML = custom.length ? custom.map((c,i)=>`<div class="myq"><div><div class="t">${esc(c.q)}</div><div class="a">${esc(c.a)}${c.w&&c.w.length?` · ${c.w.length+1} choices`:" · answer out loud"} · ${c.t}</div></div><button type="button" data-del="${i}" aria-label="Delete question">×</button></div>`).join("")
+    : `<div class="hint" style="margin:0">Nothing yet. Inside jokes are encouraged.</div>`;
+}
+$("myList").addEventListener("click", e=>{
+  const i = e.target.dataset.del; if(i===undefined) return;
+  custom.splice(+i,1); saveCustom(); renderMyList();
+});
+function encodeQs(){ return "TT1:" + btoa(unescape(encodeURIComponent(JSON.stringify(custom)))); }
+function decodeQs(s){
+  s = s.trim();
+  const json = s.startsWith("TT1:") ? decodeURIComponent(escape(atob(s.slice(4)))) : s;
+  const arr = JSON.parse(json);
+  if(!Array.isArray(arr)) throw new Error("bad");
+  return arr.filter(validQ).map(c=>({q:c.q.trim(), a:c.a.trim(), w:(Array.isArray(c.w)?c.w:[]).filter(x=>typeof x==="string"&&x.trim()).slice(0,3), t:c.t}));
+}
+$("copyQ").onclick = async ()=>{
+  if(!custom.length){ $("impMsg").textContent = "Add some questions first."; return; }
+  const code = encodeQs();
+  try{ await navigator.clipboard.writeText(code); $("impMsg").textContent = `Copied ${custom.length} question${custom.length===1?"":"s"}. Send it to a friend!`; }
+  catch(err){ $("importBox").value = code; $("importBox").select(); $("impMsg").textContent = "Couldn't copy automatically, so it's in the box above. Copy it from there."; }
+};
+$("importBtn").onclick = ()=>{
+  let added = 0;
+  try{
+    const have = new Set(["easy","medium","hard"].flatMap(poolFor).map(qKey));
+    decodeQs($("importBox").value).forEach(c=>{ const k=c.q.toLowerCase(); if(!have.has(k)){ custom.push(c); have.add(k); added++; } });
+    saveCustom(); renderMyList(); $("importBox").value = "";
+    $("impMsg").textContent = added ? `Added ${added} question${added===1?"":"s"}.` : "Those questions are already in the game.";
+  }catch(err){ $("impMsg").textContent = "That doesn't look like copied Trashed Trivia questions."; }
+};
+
+renderChips();
+renderBankInfo();
+</script>
+</body>
+</html>
