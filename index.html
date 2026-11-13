@@ -60,6 +60,8 @@
   button:active{transform:scale(.97)}
   button:disabled{opacity:.4;cursor:not-allowed}
   .btn-pink,.btn-lime{background:var(--red);color:var(--bg)}
+  .btn-big.btn-secondary{background:transparent;color:var(--red);border:3px solid var(--red);font-size:18px;padding:14px 22px}
+  .btn-big.btn-secondary.confirm{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   .btn-ghost{background:transparent;color:var(--red);border:2px solid var(--red)}
   .btn-big{font-family:"Archivo Black",sans-serif;font-weight:400;font-size:22px;padding:17px 26px;border-radius:16px;width:100%;letter-spacing:.03em;text-transform:uppercase}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;min-height:10px}
@@ -237,8 +239,9 @@
       </div>
 
       <div style="margin-top:24px">
-        <button class="btn-big btn-lime hidden" id="resumeBtn" type="button" style="margin-bottom:10px">Back to game</button>
+        <button class="btn-big btn-lime hidden" id="resumeBtn" type="button" style="margin-bottom:12px">▶&nbsp; Back to game</button>
         <button class="btn-big btn-lime" id="startBtn" disabled>Deal me in</button>
+        <div class="hint hidden" id="newGameHint" style="text-align:center">Starts over and resets everyone's scores.</div>
       </div>
     </div>
 
@@ -714,7 +717,12 @@ function renderChips(){
     return `<div class="chip"><span class="suit" style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span>${esc(p.name)}<button aria-label="Remove ${esc(p.name)}" data-i="${i}">×</button></div>`;
   }).join("");
   $("startBtn").disabled = players.length < 2;
-  $("startBtn").textContent = gameActive ? "New game" : "Deal me in";
+  confirmNew = false;
+  $("startBtn").textContent = gameActive ? "↺  New game" : "Deal me in";
+  $("startBtn").classList.toggle("btn-secondary", gameActive);
+  $("startBtn").classList.remove("confirm");
+  $("newGameHint").classList.toggle("hidden", !gameActive);
+  $("newGameHint").textContent = "Starts over and resets everyone's scores.";
   $("resumeBtn").classList.toggle("hidden", !gameActive);
   $("resumeBtn").disabled = players.length < 2;
   $("playerHint").textContent = players.length < 2 ? "Add at least 2 players. Each person gets a suit." :
@@ -750,7 +758,16 @@ function showGame(){
   $("setup").classList.add("hidden"); $("game").classList.remove("hidden");
   renderBoard(); window.scrollTo(0,0);
 }
+let confirmNew = false;
 $("startBtn").addEventListener("click", ()=>{
+  if(gameActive && !confirmNew){
+    confirmNew = true;
+    $("startBtn").textContent = "Tap again to reset";
+    $("startBtn").classList.add("confirm");
+    $("newGameHint").textContent = "This wipes the current scoreboard.";
+    return;
+  }
+  confirmNew = false;
   players.forEach((p,i)=>Object.assign(p,{si:i,right:0,answered:0,given:0,drank:0}));
   gameActive = true; buildDeck(); resetTable(); showGame();
 });
