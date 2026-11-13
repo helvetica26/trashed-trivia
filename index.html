@@ -115,10 +115,17 @@
     .sheet-head h2{font-size:17px}
     .panel{padding:18px 16px}
   }
+  .pl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:2px solid rgba(237,37,78,.25)}
+  .pl .nm{font-weight:700;color:var(--ink)}
+  .pl .st{font-size:13px;color:var(--muted)}
+  .pl button{padding:7px 12px;font-size:13px}
+  .pl button.sure{background:var(--red);color:var(--bg);border-color:var(--red)}
   .btn-green{background:var(--green);color:var(--card)}
 
   /* game */
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px}
+  button.mini-title{background:none;border:0;padding:4px 0;cursor:pointer;color:var(--title)}
+  button.mini-title:hover{filter:brightness(1.1)}
   .mini-title{display:flex;align-items:center;gap:10px;color:var(--title);fill:currentColor}
   .mini-title svg{height:18px;width:auto;fill:currentColor}
   .stage{display:grid;place-items:center;min-height:300px;perspective:1000px;margin:6px 0 18px}
@@ -230,6 +237,7 @@
       </div>
 
       <div style="margin-top:24px">
+        <button class="btn-big btn-lime hidden" id="resumeBtn" type="button" style="margin-bottom:10px">Back to game</button>
         <button class="btn-big btn-lime" id="startBtn" disabled>Deal me in</button>
       </div>
     </div>
@@ -249,11 +257,11 @@
   <!-- GAME -->
   <section id="game" class="hidden">
     <div class="topbar">
-      <div class="mini-title" aria-label="Trashed Trivia"><svg class="wm-a" viewBox="0 0 1416 224"><use href="#wm-trashed"/></svg><svg class="wm-b" viewBox="0 0 1133 224"><use href="#wm-trivia"/></svg></div>
+      <button class="mini-title" id="homeBtn" type="button" aria-label="Trashed Trivia home"><svg class="wm-a" viewBox="0 0 1416 224"><use href="#wm-trashed"/></svg><svg class="wm-b" viewBox="0 0 1133 224"><use href="#wm-trivia"/></svg></button>
       <div class="row">
         <span class="hint" id="deckLeft" style="margin:0"></span>
         <button class="btn-ghost" id="openQ2" type="button">+ Question</button>
-        <button class="btn-ghost" id="endBtn">Players</button>
+        <button class="btn-ghost" id="playersBtn" type="button">Players</button>
       </div>
     </div>
 
@@ -298,6 +306,19 @@
     <div class="foot">Know your limits. Water counts as a sip if you say it does.</div>
   </section>
 
+</div>
+
+<div class="modal hidden" id="pModal" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
+  <div class="sheet panel">
+    <div class="sheet-head"><h2 id="pmTitle">Players</h2><button class="btn-ghost" id="pmClose" type="button">Done</button></div>
+    <div class="hint" style="margin-top:0">People can join or leave mid-game. Everyone's score stays put, and new players' cards get shuffled into the deck.</div>
+    <form id="pAddForm" class="row" style="margin-top:14px" autocomplete="off">
+      <input id="pName" type="text" placeholder="Add a name" maxlength="20">
+      <button class="btn-pink" type="submit">Add</button>
+    </form>
+    <div class="hint" id="pMsg"></div>
+    <div id="pList" style="margin-top:6px"></div>
+  </div>
 </div>
 
 <div class="modal hidden" id="qModal" role="dialog" aria-modal="true" aria-labelledby="qmTitle">
@@ -665,31 +686,50 @@ function sipsFor(r){ const v = rankValue(r); return sipMode==="chill" ? Math.cei
 function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 
 // remember names between visits (best-effort)
-try{ const saved = JSON.parse(localStorage.getItem("tt-players")||"[]"); if(Array.isArray(saved)) players = saved.map(n=>newPlayer(n)); }catch(e){}
+try{ const saved = JSON.parse(localStorage.getItem("tt-players")||"[]"); if(Array.isArray(saved)) players = saved.filter(n=>typeof n==="string").map((n,i)=>newPlayer(n,i)); }catch(e){}
 function saveNames(){ try{ localStorage.setItem("tt-players", JSON.stringify(players.map(p=>p.name))) }catch(e){} }
-function newPlayer(name){ return {name, right:0, answered:0, given:0, drank:0} }
+function newPlayer(name, si){ return {name, si, right:0, answered:0, given:0, drank:0} }
+let gameActive = false;
+function nextSi(){ return players.reduce((m,p)=>Math.max(m,p.si+1),0); }
+// shared by the setup screen and the in-game Players panel; never touches anyone's score
+function addPlayer(name){
+  const n = name.trim();
+  if(!n) return "Type a name first, then tap Add.";
+  if(players.some(p=>p.name.toLowerCase()===n.toLowerCase())) return `${n} is already playing. Try a nickname or last initial.`;
+  const p = newPlayer(n, nextSi());
+  players.push(p);
+  if(gameActive){ RANKS.forEach(r=>deck.push({p, r})); shuffle(deck); }
+  saveNames(); return "";
+}
+function removePlayer(p){
+  players = players.filter(x=>x!==p);
+  if(gameActive) deck = deck.filter(c=>c.p!==p);
+  saveNames();
+}
 
 // ---------- Setup ----------
 function renderChips(){
   $("chips").innerHTML = players.map((p,i)=>{
-    const su = suitFor(i);
+    const su = suitFor(p.si);
     return `<div class="chip"><span class="suit" style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span>${esc(p.name)}<button aria-label="Remove ${esc(p.name)}" data-i="${i}">×</button></div>`;
   }).join("");
   $("startBtn").disabled = players.length < 2;
+  $("startBtn").textContent = gameActive ? "New game" : "Deal me in";
+  $("resumeBtn").classList.toggle("hidden", !gameActive);
+  $("resumeBtn").disabled = players.length < 2;
   $("playerHint").textContent = players.length < 2 ? "Add at least 2 players. Each person gets a suit." :
     players.length > 4 ? "More than 4 players: suits repeat, but every player gets their own stack of cards." :
     `${players.length} players ready.`;
 }
 $("chips").addEventListener("click", e=>{
   const i = e.target.dataset.i; if(i===undefined) return;
-  players.splice(+i,1); saveNames(); renderChips();
+  removePlayer(players[+i]); renderChips();
 });
 $("addForm").addEventListener("submit", e=>{
   e.preventDefault();
-  const n = $("nameInput").value.trim();
-  if(!n){ $("playerHint").textContent = "Type a name first, then tap Add."; $("nameInput").focus(); return; }
-  if(players.some(p=>p.name.toLowerCase()===n.toLowerCase())){ $("playerHint").textContent = `${n} is already playing. Try a nickname or last initial.`; $("nameInput").select(); return; }
-  players.push(newPlayer(n)); $("nameInput").value=""; saveNames(); renderChips();
+  const err = addPlayer($("nameInput").value);
+  if(err){ $("playerHint").textContent = err; $("nameInput").select(); return; }
+  $("nameInput").value=""; renderChips();
 });
 function segment(id, cb){
   $(id).addEventListener("click", e=>{
@@ -706,21 +746,35 @@ const DIFF_HINTS = {
 };
 segment("diffSeg", v=>{ diffMode=v; $("diffHint").textContent = DIFF_HINTS[v]; });
 
-$("startBtn").addEventListener("click", ()=>{
-  players.forEach(p=>Object.assign(p,{right:0,answered:0,given:0,drank:0}));
-  buildDeck();
+function showGame(){
   $("setup").classList.add("hidden"); $("game").classList.remove("hidden");
-  resetTable(); renderBoard(); window.scrollTo(0,0);
+  renderBoard(); window.scrollTo(0,0);
+}
+$("startBtn").addEventListener("click", ()=>{
+  players.forEach((p,i)=>Object.assign(p,{si:i,right:0,answered:0,given:0,drank:0}));
+  gameActive = true; buildDeck(); resetTable(); showGame();
 });
-$("endBtn").addEventListener("click", ()=>{
+$("resumeBtn").addEventListener("click", ()=>{
+  if(players.length<2) return;
+  if(!deck.length) buildDeck();
+  if(!current || !current.player || !players.includes(current.player)) resetTable();
+  showGame();
+});
+function goHome(){
   stopTimer();
-  $("game").classList.add("hidden"); $("setup").classList.remove("hidden"); renderChips();
-});
+  // an unanswered question is put back, not counted
+  if(current && !answered && !$("turnArea").classList.contains("hidden")){
+    if(players.includes(current.player)){ deck.push(current.card); shuffle(deck); }
+    current = null; resetTable();
+  }
+  $("game").classList.add("hidden"); $("setup").classList.remove("hidden"); renderChips(); window.scrollTo(0,0);
+}
+$("homeBtn").addEventListener("click", goHome);
 
 // ---------- Deck ----------
 function buildDeck(){
   deck = [];
-  players.forEach((p,pi)=> RANKS.forEach(r=> deck.push({pi, r})));
+  players.forEach(p=> RANKS.forEach(r=> deck.push({p, r})));
   shuffle(deck);
 }
 function tierFor(rank){
@@ -774,7 +828,7 @@ function resetTable(){
 $("drawBtn").addEventListener("click", ()=>{
   if(!deck.length) buildDeck();
   const c = deck.pop();
-  const su = suitFor(c.pi), p = players[c.pi], sips = sipsFor(c.r);
+  const p = c.p, su = suitFor(p.si), sips = sipsFor(c.r);
   current = {card:c, player:p, sips, tier:null};
   $("cardFront").classList.toggle("red", su.red);
   $("cTL").innerHTML = `${c.r}<small>${su.s}</small>`;
@@ -859,7 +913,7 @@ function stopTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
 
 // ---------- Scoreboard ----------
 function renderBoard(){
-  const rows = players.map((p,i)=>({p,i})).sort((a,b)=> (b.p.given-b.p.drank)-(a.p.given-a.p.drank));
+  const rows = players.map(p=>({p,i:p.si})).sort((a,b)=> (b.p.given-b.p.drank)-(a.p.given-a.p.drank));
   $("boardBody").innerHTML = rows.map(({p,i})=>{
     const su = suitFor(i);
     return `<tr><td><span style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span> ${esc(p.name)}</td><td>${p.right}/${p.answered}</td><td class="give">${p.given}</td><td class="take">${p.drank}</td></tr>`;
@@ -917,6 +971,42 @@ $("importBtn").onclick = ()=>{
     $("impMsg").textContent = added ? `Added ${added} question${added===1?"":"s"}.` : "Those questions are already in the game.";
   }catch(err){ $("impMsg").textContent = "That doesn't look like copied Trashed Trivia questions."; }
 };
+
+// ---------- In-game Players panel ----------
+let pendingRemove = null;
+function renderPList(){
+  $("pList").innerHTML = players.map((p,i)=>{
+    const su = suitFor(p.si), sure = pendingRemove===p;
+    const canRemove = players.length > 2;
+    return `<div class="pl"><div><div class="nm"><span style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span> ${esc(p.name)}</div><div class="st">${p.right}/${p.answered} right · gave ${p.given} · drank ${p.drank}</div></div>${canRemove?`<button type="button" class="btn-ghost${sure?' sure':''}" data-rm="${i}">${sure?'Tap to confirm':'Remove'}</button>`:''}</div>`;
+  }).join("") + (players.length<=2 ? `<div class="hint">You need at least 2 players, so add someone before removing anyone.</div>` : "");
+}
+function openPlayers(){ pendingRemove=null; $("pMsg").textContent=""; renderPList(); $("pModal").classList.remove("hidden"); }
+function closePlayers(){
+  $("pModal").classList.add("hidden");
+  if(current && !players.includes(current.player) && !$("turnArea").classList.contains("hidden")){ stopTimer(); resetTable(); }
+  $("deckLeft").textContent = `${deck.length} cards left`;
+  renderBoard();
+}
+$("playersBtn").onclick = openPlayers; $("pmClose").onclick = closePlayers;
+$("pModal").addEventListener("click", e=>{ if(e.target.id==="pModal") closePlayers(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("pModal").classList.contains("hidden")) closePlayers(); });
+$("pAddForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const name = $("pName").value.trim();
+  const err = addPlayer(name);
+  if(err){ $("pMsg").textContent = err; $("pName").select(); return; }
+  $("pName").value=""; $("pMsg").textContent = `${name} is in! Their 13 cards are shuffled into the deck.`;
+  pendingRemove=null; renderPList(); renderBoard(); $("pName").focus();
+});
+$("pList").addEventListener("click", e=>{
+  const i = e.target.dataset.rm; if(i===undefined) return;
+  const p = players[+i];
+  if(pendingRemove!==p){ pendingRemove=p; renderPList(); return; }
+  removePlayer(p); pendingRemove=null;
+  $("pMsg").textContent = `${p.name} is out. Their cards are gone from the deck.`;
+  renderPList(); renderBoard();
+});
 
 renderChips();
 renderBankInfo();
