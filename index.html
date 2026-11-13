@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trashed Trivia</title>
-<script>try{if(localStorage.getItem("tt-age")==="yes")document.documentElement.classList.add("age-ok")}catch(e){}</script>
+<script>try{var d=document.documentElement;if(localStorage.getItem("tt-mode")==="sober")d.classList.add("sober","age-ok");if(localStorage.getItem("tt-age")==="yes")d.classList.add("age-ok")}catch(e){}</script>
 <meta name="description" content="Getting drunk on education. Draw a card, answer the trivia question, then give out or take the sips.">
 <meta name="theme-color" content="#F9DC5C">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -28,6 +28,11 @@
     --green:#2f7d3a; --orange:#d9701f;
     --card:#fffaf0; --cardRed:#ed254e; --cardBlack:#2a1a14;
     --pink:#ed254e; --title:#ed254e;
+    --lineSoft:rgba(237,37,78,.28); --onColor:#fffaf0;
+  }
+  html.sober{
+    --bg:#d4e8f6; --panel:#e6f2fb; --field:#f5faff;
+    --lineSoft:rgba(237,37,78,.28);
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;min-height:100%}
@@ -55,7 +60,7 @@
   .row{display:flex;gap:10px;align-items:center}
   input[type=text]{flex:1;background:var(--field);color:var(--ink);border:2px solid var(--red);border-radius:12px;padding:13px 14px;font:inherit;font-size:16px;outline:none}
   input[type=text]::placeholder{color:var(--muted);opacity:.8}
-  input[type=text]:focus{box-shadow:0 0 0 3px rgba(237,37,78,.25)}
+  input[type=text]:focus{box-shadow:0 0 0 3px var(--lineSoft)}
   button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px 18px;font-weight:700;font-size:15px;color:var(--bg);background:var(--red);transition:transform .08s ease, filter .15s}
   button:hover:not(:disabled){filter:brightness(1.05)}
   button:active{transform:scale(.97)}
@@ -80,6 +85,10 @@
   .rules{margin-top:22px;font-size:14px;color:var(--ink);line-height:1.55}
   .rules b{color:var(--red)}
   .hidden{display:none !important}
+  html.sober .only-trashed{display:none !important}
+  html:not(.sober) .only-sober{display:none !important}
+  html.sober .back{background-image:repeating-linear-gradient(45deg, rgba(212,232,246,.22) 0 10px, transparent 10px 20px)}
+  html.sober input::placeholder, html.sober textarea::placeholder{color:var(--muted);opacity:.75}
   html:not(.age-ok) .wrap{visibility:hidden}
   #ageGate{position:fixed;inset:0;z-index:100;background:transparent;display:flex;align-items:center;justify-content:center;padding:24px 18px;overflow:auto}
   .age-ok #ageGate{display:none}
@@ -93,7 +102,7 @@
   .ag-btns{display:flex;flex-direction:column;gap:10px}
   .ag-fine{font-size:12px;color:var(--muted);margin-top:16px}
   textarea{width:100%;background:var(--field);color:var(--ink);border:2px solid var(--red);border-radius:12px;padding:12px 14px;font:inherit;font-size:16px;outline:none;resize:vertical}
-  textarea:focus{box-shadow:0 0 0 3px rgba(237,37,78,.25)}
+  textarea:focus{box-shadow:0 0 0 3px var(--lineSoft)}
   textarea::placeholder{color:var(--muted);opacity:.8}
   .addq{margin-top:16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
   .addq button{width:100%}
@@ -107,7 +116,7 @@
   .flabel span{font-family:"DM Sans";text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted)}
   .wrongs{display:grid;gap:8px}
   .wrongs input,#fA{width:100%}
-  .myq{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:2px solid rgba(237,37,78,.25)}
+  .myq{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:2px solid var(--lineSoft)}
   .myq .t{font-weight:700;color:var(--ink)}
   .myq .a{font-size:13px;color:var(--muted);margin-top:2px}
   .myq button{background:transparent;color:var(--red);padding:2px 8px;font-size:18px}
@@ -130,7 +139,7 @@
     .sheet-head h2{font-size:17px}
     .panel{padding:18px 16px}
   }
-  .pl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:2px solid rgba(237,37,78,.25)}
+  .pl{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:2px solid var(--lineSoft)}
   .pl .nm{font-weight:700;color:var(--ink)}
   .pl .st{font-size:13px;color:var(--muted)}
   .pl button{padding:7px 12px;font-size:13px}
@@ -144,7 +153,7 @@
   .award .aw-name{font-weight:700;color:var(--ink);font-size:17px;margin:6px 0 2px;word-break:break-word}
   .award .st{font-size:12px;color:var(--muted)}
   @media (max-width:560px){ .awards{grid-template-columns:1fr} .award{display:grid;grid-template-columns:40px 1fr auto;align-items:center;text-align:left;gap:10px;padding:12px 14px} .award .an{margin:0} .award .aw-name{margin:2px 0 0} }
-  .btn-green{background:var(--green);color:var(--card)}
+  .btn-green{background:var(--green);color:var(--onColor)}
 
   /* game */
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px}
@@ -173,7 +182,7 @@
   .who .stakes{margin-top:10px;display:inline-block;background:var(--red);color:var(--bg);font-weight:700;padding:6px 14px;border-radius:999px;font-size:15px}
   .qbox{margin-top:16px}
   .qmeta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-  .diff{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;letter-spacing:.1em;color:var(--card)}
+  .diff{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;letter-spacing:.1em;color:var(--onColor)}
   .diff.easy{background:var(--green)}
   .diff.medium{background:var(--orange)}
   .diff.hard{background:var(--red)}
@@ -184,10 +193,10 @@
   .opt{text-align:left;background:var(--field);color:var(--ink);border:2px solid var(--red);padding:15px 16px;font-size:17px;font-weight:500;display:flex;gap:12px;align-items:center}
   .opt .k{font-family:"Archivo Black",sans-serif;font-weight:400;color:var(--red);width:20px}
   .opt:hover:not(:disabled){background:#fff}
-  .opt.right{background:var(--green);color:var(--card);border-color:var(--green)}
-  .opt.right .k{color:var(--card)}
-  .opt.wrong{background:var(--red);color:var(--card);border-color:var(--red)}
-  .opt.wrong .k{color:var(--card)}
+  .opt.right{background:var(--green);color:var(--onColor);border-color:var(--green)}
+  .opt.right .k{color:var(--onColor)}
+  .opt.wrong{background:var(--red);color:var(--bg);border-color:var(--red)}
+  .opt.wrong .k{color:var(--bg)}
   .opt:disabled{opacity:1;cursor:default}
   .verdict{margin-top:16px;border-radius:16px;padding:18px;text-align:center;border:3px solid}
   .verdict.good{background:rgba(47,125,58,.1);border-color:var(--green)}
@@ -202,7 +211,7 @@
   table{width:100%;border-collapse:collapse;font-size:15px;color:var(--ink)}
   th{font-family:"Archivo Black",sans-serif;font-weight:400;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--red);text-align:right;padding:8px 6px}
   th:first-child,td:first-child{text-align:left}
-  td{padding:10px 6px;border-top:2px solid rgba(237,37,78,.35);text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+  td{padding:10px 6px;border-top:2px solid var(--lineSoft);text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
   td.give{color:var(--green);font-weight:700}
   td.take{color:var(--red);font-weight:700}
   .foot{margin-top:30px;text-align:center;font-size:12px;color:var(--muted)}
@@ -233,7 +242,8 @@
       </div>
       <div id="agSorry" class="hidden">
         <h2 class="ag-q">Come back when you're 21!</h2>
-        <p class="ag-p">Until then, the education part is free everywhere. The drinking part can wait. 🧃</p>
+        <p class="ag-p">The drinking part can wait, but the trivia can't. Play the sober version for points instead. 🧃</p>
+        <div class="ag-btns" style="margin-bottom:14px"><button class="btn-big btn-pink" id="agSober" type="button">Play the sober version</button></div>
         <button class="linkbtn" id="agBack" type="button" style="font-size:14px">Wait, I tapped the wrong one</button>
       </div>
     </div>
@@ -245,13 +255,19 @@
   <!-- SETUP -->
   <section id="setup">
     <header class="hero" aria-label="Trashed Trivia">
-      <div class="kicker">Getting drunk on education</div>
+      <div class="kicker"><span class="only-trashed">Getting drunk on education</span><span class="only-sober">The sober edition</span></div>
       <h1 class="title" aria-label="Trashed Trivia"><svg class="wm-a" viewBox="0 0 1416 224"><use href="#wm-trashed"/></svg><svg class="wm-b" viewBox="0 0 1133 224"><use href="#wm-trivia"/></svg></h1>
     </header>
-    <p class="tag">Add your crew, draw a card, answer the question. The card says who's up and how many sips are on the line.</p>
+    <p class="tag">Add your crew, draw a card, answer the question. The card says who's up and how many <span class="only-trashed">sips</span><span class="only-sober">points</span> are on the line.</p>
 
     <div class="panel">
-      <div class="label" style="margin-top:0">Players</div>
+      <div class="label" style="margin-top:0">Version</div>
+      <div class="seg seg-stack" id="modeSeg">
+        <button data-v="trashed" class="on"><b>Trashed</b><span>Play for sips (21+)</span></button>
+        <button data-v="sober"><b>Sober</b><span>Play for points</span></button>
+      </div>
+
+      <div class="label">Players</div>
       <form id="addForm" class="row">
         <input id="nameInput" type="text" placeholder="Add a name" maxlength="20" autocomplete="off">
         <button class="btn-pink" type="submit">Add</button>
@@ -259,6 +275,7 @@
       <div class="chips" id="chips"></div>
       <div class="hint" id="playerHint">Add at least 2 players. Each person gets a suit.</div>
 
+      <div class="only-trashed">
       <div class="label">Sips</div>
       <div class="seg" id="sipSeg">
         <button data-v="full" class="on">Full send</button>
@@ -266,6 +283,8 @@
       </div>
 
       <div class="hint">Ace = 1 sip, 2–9 = face value, 10/J/Q/K = 10. Chill halves it, rounded up.</div>
+      </div>
+      <div class="hint only-sober">Ace = 1 point, 2–9 = face value, 10/J/Q/K = 10.</div>
 
       <div class="label">Difficulty</div>
       <div class="seg seg-stack" id="diffSeg">
@@ -295,9 +314,9 @@
     </div>
 
     <div class="rules">
-      <b>How it works.</b> Every player gets a stack of 13 cards (Ace through King) in their suit, and the whole deck is shuffled together. Draw a card: the suit picks who's up, and the rank sets the sips (Ace = 1, 2–9 = face value, 10/J/Q/K = 10).
-      Answer right and you <b>give out</b> that many sips. Get it wrong and you <b>drink</b> them.<br><br>
-      <b>Difficulty.</b> In <b>Extra trashed</b>, A–4 get easy questions, 5–9 medium, and 10–K hard, so the big sips come with the hard questions. <b>Lightly trashed</b> flips it: low cards get the hard questions and 10–K get easy ones.
+      <b>How it works.</b> Every player gets a stack of 13 cards (Ace through King) in their suit, and the whole deck is shuffled together. Draw a card: the suit picks who's up, and the rank sets the <span class="only-trashed">sips</span><span class="only-sober">points</span> (Ace = 1, 2–9 = face value, 10/J/Q/K = 10).
+      <span class="only-trashed">Answer right and you <b>give out</b> that many sips. Get it wrong and you <b>drink</b> them.</span><span class="only-sober">Answer right and you <b>earn</b> that many points. Get it wrong and you <b>lose</b> them. Most points wins.</span><br><br>
+      <b>Difficulty.</b> In <b>Extra trashed</b>, A–4 get easy questions, 5–9 medium, and 10–K hard, so the big <span class="only-trashed">sips</span><span class="only-sober">points</span> come with the hard questions. <b>Lightly trashed</b> flips it: low cards get the hard questions and 10–K get easy ones.
     </div>
   </section>
 
@@ -353,7 +372,7 @@
       <div class="panel" style="margin-top:16px">
         <div class="label" style="margin-top:0">This round</div>
         <table>
-          <thead><tr><th>Player</th><th>Right</th><th>Given</th><th>Drank</th></tr></thead>
+          <thead><tr><th>Player</th><th>Right</th><th><span class="only-trashed">Given</span><span class="only-sober">Earned</span></th><th><span class="only-trashed">Drank</span><span class="only-sober">Lost</span></th></tr></thead>
           <tbody id="roBody"></tbody>
         </table>
       </div>
@@ -369,11 +388,11 @@
     <div class="board panel">
       <div class="label" style="margin-top:0" id="boardLabel">Scoreboard</div>
       <table>
-        <thead><tr><th>Player</th><th>Right</th><th>Given</th><th>Drank</th></tr></thead>
+        <thead><tr><th>Player</th><th>Right</th><th><span class="only-trashed">Given</span><span class="only-sober">Earned</span></th><th><span class="only-trashed">Drank</span><span class="only-sober">Lost</span></th></tr></thead>
         <tbody id="boardBody"></tbody>
       </table>
     </div>
-    <div class="foot">Know your limits. Water counts as a sip if you say it does.</div>
+    <div class="foot"><span class="only-trashed">Know your limits. Water counts as a sip if you say it does.</span><span class="only-sober">No drinks required. Snacks strongly encouraged.</span></div>
   </section>
 
 </div>
@@ -752,7 +771,9 @@ const $ = id => document.getElementById(id);
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function suitFor(i){return SUITS[i % SUITS.length]}
 function rankValue(r){ if(r==="A") return 1; if(["10","J","Q","K"].includes(r)) return 10; return +r }
-function sipsFor(r){ const v = rankValue(r); return sipMode==="chill" ? Math.ceil(v/2) : v }
+function sipsFor(r){ const v = rankValue(r); return (sipMode==="chill" && !isSober()) ? Math.ceil(v/2) : v }
+function isSober(){ return document.documentElement.classList.contains("sober"); }
+function unit(n){ return isSober() ? `point${n===1?"":"s"}` : `sip${n===1?"":"s"}`; }
 function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 
 // remember names between visits (best-effort)
@@ -930,7 +951,7 @@ $("drawBtn").addEventListener("click", ()=>{
   $("drawArea").classList.add("hidden");
   setTimeout(()=>{
     $("whoName").textContent = `${p.name}, you're up`;
-    $("whoStakes").textContent = `${sips} sip${sips===1?"":"s"} on the line` + (deck.length ? "" : " · last card!");
+    $("whoStakes").textContent = `${sips} ${unit(sips)} on the line` + (deck.length ? "" : " · last card!");
     $("turnArea").classList.remove("hidden");
     $("turnArea").querySelector(".who").classList.remove("pop"); void $("turnArea").offsetWidth;
     $("turnArea").querySelector(".who").classList.add("pop");
@@ -983,8 +1004,10 @@ function resolve(correct, chosen, timeUp=false, judged=false){
   if(correct){ p.right++; p.given += s; }
   else { p.drank += s; }
   $("verdict").innerHTML = correct
-    ? `<div class="verdict good pop"><div class="display">Give out ${s}!</div><p>${esc(p.name)} got it. Hand out ${s} sip${s===1?"":"s"} however you like.</p></div>`
-    : `<div class="verdict bad pop"><div class="display">Drink ${s}.</div><p>${timeUp?"Time's up. ":""}The answer was <b style="color:var(--ink)">${esc(current.q[1])}</b>.</p></div>`;
+    ? (isSober()
+        ? `<div class="verdict good pop"><div class="display">+${s} ${unit(s)}!</div><p>${esc(p.name)} got it.</p></div>`
+        : `<div class="verdict good pop"><div class="display">Give out ${s}!</div><p>${esc(p.name)} got it. Hand out ${s} sip${s===1?"":"s"} however you like.</p></div>`)
+    : `<div class="verdict bad pop"><div class="display">${isSober() ? `−${s} ${unit(s)}.` : `Drink ${s}.`}</div><p>${timeUp?"Time's up. ":""}The answer was <b style="color:var(--ink)">${esc(current.q[1])}</b>.</p></div>`;
   const last = !deck.length;
   $("turnActions").innerHTML = `<button class="btn-big btn-pink" id="nextBtn">${last ? "See round results" : "Next card"}</button>`;
   $("nextBtn").onclick = ()=>{ if(last){ showRoundOver(); return; } resetTable(); window.scrollTo({top:0,behavior:"smooth"}); };
@@ -1013,13 +1036,14 @@ function showRoundOver(){
   const winners = rows.filter(r=>r.net===top);
   $("roKicker").textContent = `Round ${roundNo} complete`;
   $("roTitle").textContent = winners.length===1 ? `${winners[0].p.name} wins the round!` : `It's a tie: ${namesOf(winners)}!`;
-  $("roSub").textContent = "Winner = most sips given out minus sips drunk this round.";
+  $("roSub").textContent = isSober() ? "Winner = most points this round (earned minus lost)." : "Winner = most sips given out minus sips drunk this round.";
   const brain = leaders(rows,"right"), trash = leaders(rows,"drank"), host = leaders(rows,"given");
   const card = (ic, name, L, unit) => `<div class="award pop"><div class="ic">${ic}</div><div><div class="an">${name}</div><div class="aw-name">${L.best>0 ? esc(namesOf(L.list)) : "Nobody, yikes"}</div></div><div class="st">${L.best} ${unit}</div></div>`;
   $("roAwards").innerHTML =
     card("🧠","Brainiac", brain, brain.best===1?"right answer":"right answers") +
-    card("🗑️","Most trashed", trash, trash.best===1?"sip drunk":"sips drunk") +
-    card("🍻","Generous host", host, host.best===1?"sip given":"sips given");
+    (isSober()
+      ? card("📉","Rough round", trash, trash.best===1?"point lost":"points lost") + card("💰","Point hoarder", host, host.best===1?"point earned":"points earned")
+      : card("🗑️","Most trashed", trash, trash.best===1?"sip drunk":"sips drunk") + card("🍻","Generous host", host, host.best===1?"sip given":"sips given"));
   $("roBody").innerHTML = rows.sort((a,b)=>b.net-a.net).map(({p,s})=>{
     const su = suitFor(p.si);
     return `<tr><td><span style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span> ${esc(p.name)}</td><td>${s.right}/${s.answered}</td><td class="give">${s.given}</td><td class="take">${s.drank}</td></tr>`;
@@ -1106,7 +1130,7 @@ function renderPList(){
   $("pList").innerHTML = players.map((p,i)=>{
     const su = suitFor(p.si), sure = pendingRemove===p;
     const canRemove = players.length > 2;
-    return `<div class="pl"><div><div class="nm"><span style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span> ${esc(p.name)}</div><div class="st">${p.right}/${p.answered} right · gave ${p.given} · drank ${p.drank}</div></div>${canRemove?`<button type="button" class="btn-ghost${sure?' sure':''}" data-rm="${i}">${sure?'Tap to confirm':'Remove'}</button>`:''}</div>`;
+    return `<div class="pl"><div><div class="nm"><span style="color:${su.red?'var(--pink)':'var(--ink)'}">${su.s}</span> ${esc(p.name)}</div><div class="st">${p.right}/${p.answered} right · ${isSober() ? `earned ${p.given} · lost ${p.drank}` : `gave ${p.given} · drank ${p.drank}`}</div></div>${canRemove?`<button type="button" class="btn-ghost${sure?' sure':''}" data-rm="${i}">${sure?'Tap to confirm':'Remove'}</button>`:''}</div>`;
   }).join("") + (players.length<=2 ? `<div class="hint">You need at least 2 players, so add someone before removing anyone.</div>` : "");
 }
 function openPlayers(){ pendingRemove=null; $("pMsg").textContent=""; renderPList(); $("pModal").classList.remove("hidden"); }
@@ -1136,8 +1160,28 @@ $("pList").addEventListener("click", e=>{
   renderPList(); renderBoard();
 });
 
+// ---------- Version: trashed (sips) or sober (points) ----------
+function ageOk(){ try{ return localStorage.getItem("tt-age")==="yes" }catch(e){ return false } }
+function markModeSeg(){ [...$("modeSeg").children].forEach(b=>b.classList.toggle("on", b.dataset.v===(isSober()?"sober":"trashed"))); }
+function setMode(m){
+  document.documentElement.classList.toggle("sober", m==="sober");
+  try{ localStorage.setItem("tt-mode", m) }catch(e){}
+  const tc = document.querySelector('meta[name="theme-color"]'); if(tc) tc.content = m==="sober" ? "#D4E8F6" : "#F9DC5C";
+  markModeSeg(); renderBoard();
+}
+$("modeSeg").addEventListener("click", e=>{
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.v==="sober"){ setMode("sober"); return; }
+  if(ageOk()){ setMode("trashed"); return; }
+  // switching to the drinking version asks for age first
+  $("agSorry").classList.add("hidden"); $("agAsk").classList.remove("hidden");
+  document.documentElement.classList.remove("age-ok");
+});
+markModeSeg();
+
 // ---------- 21+ gate ----------
-$("agYes").onclick = ()=>{ try{ localStorage.setItem("tt-age","yes") }catch(e){} document.documentElement.classList.add("age-ok"); };
+$("agYes").onclick = ()=>{ try{ localStorage.setItem("tt-age","yes") }catch(e){} document.documentElement.classList.add("age-ok"); setMode("trashed"); };
+$("agSober").onclick = ()=>{ setMode("sober"); document.documentElement.classList.add("age-ok"); };
 $("agNo").onclick = ()=>{ $("agAsk").classList.add("hidden"); $("agSorry").classList.remove("hidden"); };
 $("agBack").onclick = ()=>{ $("agSorry").classList.add("hidden"); $("agAsk").classList.remove("hidden"); };
 
