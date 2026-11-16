@@ -192,7 +192,7 @@
   button.mini-title:hover{filter:brightness(1.1)}
   .mini-title{display:flex;align-items:center;gap:10px;color:var(--title);fill:currentColor}
   .mini-title svg{height:18px;width:auto;fill:currentColor}
-  .stage{display:grid;place-items:center;min-height:300px;perspective:1000px;margin:6px 0 18px}
+  .stage{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;perspective:1000px;margin:6px 0 18px}
   .playing-card{width:190px;height:268px;position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
   .playing-card.flipped{transform:rotateY(180deg)}
   .face{position:absolute;inset:0;border-radius:16px;backface-visibility:hidden;border:3px solid var(--red);box-shadow:6px 8px 0 rgba(158,18,51,.25)}
@@ -207,7 +207,13 @@
   .corner{font-family:"Archivo Black",sans-serif;font-size:24px;line-height:.95;text-align:center;width:34px}
   .corner small{display:block;font-size:22px;font-family:system-ui}
   .corner.br{align-self:flex-end;transform:rotate(180deg)}
-  .pip{flex:1;display:grid;place-items:center;font-size:84px;line-height:1}
+  .pip{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:84px;line-height:1}
+  .c-name{font-family:"Archivo Black",sans-serif;font-size:15px;letter-spacing:.06em;text-transform:uppercase;margin-top:8px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .flip-cap{text-align:center;margin-top:18px}
+  .flip-cap .up-k{font-size:13px}
+  .fc-name{font-family:"Archivo Black",sans-serif;color:var(--red);text-transform:uppercase;font-size:clamp(34px,9vw,46px);line-height:1;margin:2px 0 10px;max-width:90vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fly{pointer-events:none;will-change:transform,opacity}
+  .flip-cap .stakes{display:inline-block;background:var(--red);color:var(--bg);font-weight:700;padding:6px 14px;border-radius:999px;font-size:15px}
   .who{text-align:center;margin-bottom:8px}
   .who .name{font-family:"Archivo Black",sans-serif;text-transform:uppercase;font-size:clamp(28px,7vw,40px);line-height:1;color:var(--red)}
   .who .stakes{margin-top:10px;display:inline-block;background:var(--red);color:var(--bg);font-weight:700;padding:6px 14px;border-radius:999px;font-size:15px}
@@ -389,9 +395,14 @@
         <div class="face back"><div class="cb"><div class="title card-wm"><svg class="wm-a" viewBox="0 0 1416 224"><use href="#wm-trashed"/></svg><svg class="wm-b" viewBox="0 0 1133 224"><use href="#wm-trivia"/></svg></div></div></div>
         <div class="face front" id="cardFront">
           <div class="corner" id="cTL"></div>
-          <div class="pip" id="cPip"></div>
+          <div class="pip"><span id="cPip"></span><span class="c-name" id="cName"></span></div>
           <div class="corner br" id="cBR"></div>
         </div>
+      </div>
+      <div class="flip-cap hidden" id="flipCap">
+        <div class="up-k">You're up</div>
+        <div class="fc-name" id="fcName"></div>
+        <div class="stakes" id="fcStakes"></div>
       </div>
     </div>
 
@@ -400,7 +411,7 @@
     </div>
 
     <div id="turnArea" class="hidden">
-      <div class="who pop">
+      <div class="who">
         <div class="mini-card" id="miniCard"><span class="mc-r" id="mcR"></span><span class="mc-s" id="mcS"></span></div>
         <div class="who-txt">
           <div class="up-k">You're up</div>
@@ -984,6 +995,7 @@ function renderBankInfo(){
 // ---------- Turn ----------
 function resetTable(){
   $("roundOver").classList.add("hidden");
+  $("flipCap").classList.add("hidden");
   document.querySelector(".board").classList.remove("hidden");
   document.querySelector(".stage").classList.remove("hidden");
   $("pcard").classList.remove("flipped");
@@ -1004,19 +1016,55 @@ $("drawBtn").addEventListener("click", ()=>{
   $("pcard").classList.add("flipped");
   $("deckLeft").textContent = deck.length ? `${deck.length} cards left` : "Last card of the round!";
   $("drawArea").classList.add("hidden");
-  setTimeout(()=>{
-    document.querySelector(".stage").classList.add("hidden");
+  $("cName").textContent = p.name;
+  $("fcName").textContent = p.name;
+  $("fcStakes").textContent = `${sips} ${unit(sips)} on the line` + (deck.length ? "" : " · last card!");
+  // the name pops in as the card lands face up
+  setTimeout(()=>{ $("flipCap").classList.remove("hidden","pop"); void $("flipCap").offsetWidth; $("flipCap").classList.add("pop"); }, 380);
+  setTimeout(()=>minimizeCard(()=>{
     $("miniCard").classList.toggle("red", su.red);
     $("mcR").textContent = c.r; $("mcS").textContent = su.s;
     window.scrollTo(0,0);
     $("whoName").textContent = p.name;
     $("whoStakes").textContent = `${sips} ${unit(sips)} on the line` + (deck.length ? "" : " · last card!");
     $("turnArea").classList.remove("hidden");
-    $("turnArea").querySelector(".who").classList.remove("pop"); void $("turnArea").offsetWidth;
-    $("turnArea").querySelector(".who").classList.add("pop");
     showQuestion();
-  }, 1050);
+  }), 1700);
 });
+
+// Glide the big card into the small card's spot (FLIP animation), then reveal the question.
+function minimizeCard(showTurn){
+  const front = $("cardFront"), r = front.getBoundingClientRect();
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let clone = null;
+  if(!reduce && r.width){
+    clone = front.cloneNode(true);
+    clone.removeAttribute("id"); clone.querySelectorAll("[id]").forEach(e=>e.removeAttribute("id"));
+    clone.classList.add("fly");
+    Object.assign(clone.style, {position:"fixed", left:r.left+"px", top:r.top+"px", width:r.width+"px", height:r.height+"px", inset:"auto", margin:"0", transform:"none", zIndex:"40"});
+    clone.style.left = r.left+"px"; clone.style.top = r.top+"px";
+    document.body.appendChild(clone);
+  }
+  document.querySelector(".stage").classList.add("hidden");
+  $("flipCap").classList.add("hidden");
+  showTurn();
+  if(!clone) return;
+  const mini = $("miniCard"), m = mini.getBoundingClientRect();
+  mini.style.opacity = "0";
+  const dx = (m.left + m.width/2) - (r.left + r.width/2);
+  const dy = (m.top + m.height/2) - (r.top + r.height/2);
+  const s = mini.offsetWidth / r.width;
+  const turnBits = [$("turnArea").querySelector(".who-txt"), $("turnArea").querySelector(".qbox")];
+  turnBits.forEach(el=>el && el.animate([{opacity:0, transform:"translateY(14px)"},{opacity:1, transform:"none"}], {duration:420, delay:180, easing:"cubic-bezier(.2,.8,.2,1)", fill:"backwards"}));
+  const a = clone.animate([
+    {transform:"translate(0,0) scale(1) rotate(0deg)"},
+    {transform:`translate(${dx}px,${dy}px) scale(${s}) rotate(-5deg)`}
+  ], {duration:560, easing:"cubic-bezier(.65,0,.35,1)", fill:"forwards"});
+  a.onfinish = ()=>{
+    mini.animate([{opacity:0},{opacity:1}], {duration:140, fill:"forwards"}).onfinish = ()=>{ mini.style.opacity = ""; };
+    clone.animate([{opacity:1},{opacity:0}], {duration:160, fill:"forwards"}).onfinish = ()=>clone.remove();
+  };
+}
 
 function showQuestion(){
   answered = false;
